@@ -5,6 +5,8 @@ import { supabase } from "@/app/lib/supabase/client";
 import type { FestEvent } from "@/app/data/events";
 import Waves from "@/app/components/Waves";
 import { PAYMENT_REQUIRED, TEAM_NOTIFICATION_EMAIL } from "@/app/lib/config";
+import { useFlashSale } from "@/app/lib/useFlashSale";
+import CountdownTimer from "@/app/components/CountdownTimer";
 
 type Member = {
   name: string;
@@ -40,6 +42,8 @@ function generateCouponCode() {
 }
 
 export default function CrewRegisterForm({ event }: { event: FestEvent }) {
+  const flashSale = useFlashSale(event.slug);
+
   const [step, setStep] = useState<
     "groupInfo" | "members" | "payment" | "done"
   >("groupInfo");
@@ -101,6 +105,8 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
   const canProceedToMembers =
     crewName && city && stateName && (category === "open" || institution);
 
+  const price = flashSale.isActive ? Math.round(PRICE_FLAT * 0.9) : PRICE_FLAT;
+
   const canProceedToPayment =
     members.length >= MIN_MEMBERS &&
     members.every(
@@ -141,7 +147,7 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
           performance_duration: performanceDuration,
           props_used: propsUsed,
           props_details: propsUsed ? propsDetails : null,
-          amount_paid: PRICE_FLAT,
+          amount_paid: price,
           payment_pending: !paymentScreenshot,
           payee_name: payeeName,
           payee_phone: payeePhone,
@@ -274,6 +280,15 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
 
         {step === "groupInfo" && (
           <>
+            {flashSale.isActive && (
+              <div className="rounded-xl border border-thermal-accent bg-thermal-accent/10 p-4 mb-8">
+                <p className="text-thermal-accent font-medium text-sm">
+                  ✨ Flash Sale: 10% off, ends in{" "}
+                  <CountdownTimer timeRemainingMs={flashSale.timeRemainingMs} />
+                </p>
+              </div>
+            )}
+
             <div className="space-y-4 mb-8">
               <Input label="Crew Name" value={crewName} onChange={setCrewName} />
 
@@ -425,6 +440,15 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
 
         {step === "payment" && (
           <>
+            {flashSale.isActive && (
+              <div className="rounded-xl border border-thermal-accent bg-thermal-accent/10 p-4 mb-6">
+                <p className="text-thermal-accent font-medium text-sm">
+                  ✨ Flash Sale: 10% off, ends in{" "}
+                  <CountdownTimer timeRemainingMs={flashSale.timeRemainingMs} />
+                </p>
+              </div>
+            )}
+
             {PAYMENT_REQUIRED ? (
               <>
                 <div className="rounded-2xl border border-white/10 bg-bg-surface p-8 mb-6">
@@ -432,9 +456,16 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
                     Total Amount
                   </p>
                   <p className="text-text-primary text-3xl font-semibold">
-                    ₹{PRICE_FLAT}
+                    ₹{price}
                   </p>
-                  <p className="text-text-muted text-sm mt-1">Flat fee per crew</p>
+                  <p className="text-text-muted text-sm mt-1">
+                    Flat fee per crew
+                    {flashSale.isActive && (
+                      <span className="text-thermal-accent ml-2">
+                        (10% off applied)
+                      </span>
+                    )}
+                  </p>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-bg-surface p-4 mb-6 flex flex-col items-center">

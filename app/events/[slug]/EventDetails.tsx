@@ -1,11 +1,17 @@
+"use client";
+
 import TransitionLink from "@/app/components/TransitionLink";
 import type { FestEvent } from "@/app/data/events";
 import StickyRegisterBar from "@/app/components/StickyRegisterBar";
 import PrismaticBurst from "@/app/components/PrismaticBurst";
+import { useFlashSale } from "@/app/lib/useFlashSale";
+import CountdownTimer from "@/app/components/CountdownTimer";
 
 const DEFAULT_THEME_COLORS = ['#B497CF', '#4d3dff', '#C9A0F5'];
 
 export default function EventDetails({ event }: { event: FestEvent }) {
+  const flashSale = useFlashSale(event.slug);
+
   return (
     <main className="relative min-h-screen bg-bg-base px-6 pt-32 pb-20 overflow-hidden">
       <div
@@ -32,6 +38,15 @@ export default function EventDetails({ event }: { event: FestEvent }) {
         </h1>
         <p className="text-text-muted mb-1">{event.name}</p>
         <p className="text-text-muted mb-10">{event.hosts}</p>
+
+        {flashSale.isActive && (
+          <div className="rounded-xl border border-thermal-accent bg-thermal-accent/10 p-4 mb-6">
+            <p className="text-thermal-accent font-medium text-sm">
+              ✨ Flash Sale: 10% off, ends in{" "}
+              <CountdownTimer timeRemainingMs={flashSale.timeRemainingMs} />
+            </p>
+          </div>
+        )}
 
         <div className="rounded-2xl border border-white/10 bg-bg-surface p-8 space-y-4">
           <Detail label="Eligibility" value={event.eligibility} />

@@ -5,6 +5,8 @@ import { supabase } from "@/app/lib/supabase/client";
 import type { FestEvent } from "@/app/data/events";
 import Waves from "@/app/components/Waves";
 import { PAYMENT_REQUIRED, TEAM_NOTIFICATION_EMAIL } from "@/app/lib/config";
+import { useFlashSale } from "@/app/lib/useFlashSale";
+import CountdownTimer from "@/app/components/CountdownTimer";
 
 type Participant = {
   name: string;
@@ -53,6 +55,8 @@ function generateCouponCode() {
 }
 
 export default function DanceRegisterForm({ event }: { event: FestEvent }) {
+  const flashSale = useFlashSale(event.slug);
+
   const [step, setStep] = useState<
     "details" | "participants" | "payment" | "done"
   >("details");
@@ -117,10 +121,17 @@ export default function DanceRegisterForm({ event }: { event: FestEvent }) {
       p.name && p.contact && p.email && p.age && p.institution && p.idProof
   );
 
+  const soloPrice = flashSale.isActive
+    ? Math.round(SOLO_PRICE * 0.9)
+    : SOLO_PRICE;
+  const groupPricePerHead = flashSale.isActive
+    ? Math.round(GROUP_PRICE_PER_HEAD * 0.9)
+    : GROUP_PRICE_PER_HEAD;
+
   const total =
     performanceType === "solo"
-      ? SOLO_PRICE
-      : participants.length * GROUP_PRICE_PER_HEAD;
+      ? soloPrice
+      : participants.length * groupPricePerHead;
 
   async function uploadFile(file: File, path: string) {
     const { error: uploadError } = await supabase.storage
@@ -283,6 +294,15 @@ export default function DanceRegisterForm({ event }: { event: FestEvent }) {
 
         {step === "details" && (
           <>
+            {flashSale.isActive && (
+              <div className="rounded-xl border border-thermal-accent bg-thermal-accent/10 p-4 mb-8">
+                <p className="text-thermal-accent font-medium text-sm">
+                  ✨ Flash Sale: 10% off, ends in{" "}
+                  <CountdownTimer timeRemainingMs={flashSale.timeRemainingMs} />
+                </p>
+              </div>
+            )}
+
             <div className="space-y-4 mb-8">
               <Input label="City" value={city} onChange={setCity} />
               <Input label="State" value={stateName} onChange={setStateName} />
@@ -417,6 +437,15 @@ export default function DanceRegisterForm({ event }: { event: FestEvent }) {
 
         {step === "payment" && (
           <>
+            {flashSale.isActive && (
+              <div className="rounded-xl border border-thermal-accent bg-thermal-accent/10 p-4 mb-6">
+                <p className="text-thermal-accent font-medium text-sm">
+                  ✨ Flash Sale: 10% off, ends in{" "}
+                  <CountdownTimer timeRemainingMs={flashSale.timeRemainingMs} />
+                </p>
+              </div>
+            )}
+
             {PAYMENT_REQUIRED ? (
               <>
                 <div className="rounded-2xl border border-white/10 bg-bg-surface p-8 mb-6">
@@ -428,8 +457,13 @@ export default function DanceRegisterForm({ event }: { event: FestEvent }) {
                   </p>
                   <p className="text-text-muted text-sm mt-1">
                     {performanceType === "solo"
-                      ? `₹${SOLO_PRICE}`
-                      : `${participants.length} × ₹${GROUP_PRICE_PER_HEAD}`}
+                      ? `₹${soloPrice}`
+                      : `${participants.length} × ₹${groupPricePerHead}`}
+                    {flashSale.isActive && (
+                      <span className="text-thermal-accent ml-2">
+                        (10% off applied)
+                      </span>
+                    )}
                   </p>
                 </div>
 
