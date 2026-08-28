@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dyuthi — CBIT National Performing Arts Festival
 
-## Getting Started
+Official website for **Dyuthi**, Chaitanya Bharathi Institute of Technology's national-level performing arts festival, organized by Chaitanya Geethi, Vaadya, UDC (United Dance Crew), and Laasya.
 
-First, run the development server:
+Live site: [dyuthi-fest.vercel.app](https://dyuthi-fest.vercel.app)
+
+## What's in here
+
+- **Event pages** — details, rules, and registration for each flagship competition:
+  - **Aangikam** (Classical Dance) — Laasya
+  - **3T's** (Hip-Hop Crew) — United Dance Crew
+  - **Veni, Vidi, Vici.** (Battle of the Bands) — Chaitanya Geethi x Vaadya
+- **Audience registration** — separate flow for non-competing attendees (free entry for CBIT students)
+- **Two-step Battle of the Bands flow** — Round 1 entry, and a Round 2 form gated behind selection status
+- **Payment tracking** — manual UPI QR + screenshot upload, with payee name/phone/UTR fields for reconciliation
+- **Flash sale support** — time-boxed discount banners with a live countdown, configurable per event
+- **Admin dashboard** — club-specific logins to view registrations for that club's event, plus a main-admin login with a table selector to view any event's data
+- **Confirmation emails** — sent via Resend on successful registration, including a workshop discount coupon code (competition registrants only)
+- **OCR verification pipeline** — background ID/payment verification via Supabase webhooks (currently disabled pending a webhook connectivity issue — see Known Issues)
+
+## Tech stack
+
+- **Next.js** (App Router) + TypeScript + Tailwind CSS
+- **Supabase** — Postgres database, Row Level Security, Storage (ID proofs, payment screenshots)
+- **Resend** — transactional email
+- **Vercel** — hosting/deployment
+- **Playwright** — end-to-end tests for every registration flow
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create `.env.local` with:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+RESEND_API_KEY=
+```
 
-## Learn More
+## Testing
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run dev          # in one terminal
+npx playwright test --headed   # in another
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Tests submit real registrations against the live Supabase project. After running, clean up test data:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# run cleanup-test-data.sql in the Supabase SQL editor
+```
 
-## Deploy on Vercel
+CI runs the same suite manually via GitHub Actions (`workflow_dispatch` only, not on every push, to avoid polluting production data automatically).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Key config
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `app/lib/config.ts` — feature flags: `PAYMENT_REQUIRED`, `FLASH_SALE`, `TEAM_NOTIFICATION_EMAIL`
+- `app/lib/clubAuth.ts` — admin login credentials per club (env-based passwords)
+
+## Known issues
+
+- **OCR verification webhook**: Supabase's `pg_net` extension times out at the DNS resolution stage when calling `/api/verify-registration`. This appears to be an intermittent infrastructure issue between Supabase and Vercel's edge network, not an application bug. OCR-related fields are hidden from the admin dashboard until this is resolved (flag: check `app/admin/page.tsx`).
+- **Automated confirmation emails** currently go to the team's own inbox for manual forwarding, since a custom domain hasn't been verified with Resend yet. Once verified, update `FROM_ADDRESS` in `app/api/send-confirmation/route.ts` and the `toEmail` fields in each registration form.
+
+## Admin access
+
+`/admin/login` — select a club and enter its password. The main admin account can view all events; individual club logins see only their own event's registrations.
