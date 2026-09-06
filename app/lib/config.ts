@@ -25,4 +25,4 @@ export const FLASH_SALE_DEV_PREVIEW = process.env.NODE_ENV !== "production";
 // Not publicly launched yet - flip to true (and deploy) to open the Solo
 // category for 3T's. Always visible in development so it can be tested
 // locally regardless of this flag.
-export const SOLO_3TS_ENABLED = false;
+export const SOLO_3TS_ENABLED = true;

@@ -72,7 +72,7 @@ export const events: FestEvent[] = [
     categories: null,
     eligibility: "Open to all colleges and schools",
     prize: "₹1,00,000",
-    registrationFee: "₹3,115 flat fee per crew",
+    registrationFee: "₹3,115 per crew · ₹1,500 solo",
     rules: "All Hip-hop and western dance forms.",
     description: "",
     image: "/events/hip-hop-dance.jpg",

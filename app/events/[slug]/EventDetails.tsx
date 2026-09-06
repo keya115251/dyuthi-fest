@@ -6,11 +6,14 @@ import StickyRegisterBar from "@/app/components/StickyRegisterBar";
 import PrismaticBurst from "@/app/components/PrismaticBurst";
 import { useFlashSale } from "@/app/lib/useFlashSale";
 import CountdownTimer from "@/app/components/CountdownTimer";
+import { SOLO_3TS_ENABLED } from "@/app/lib/config";
 
 const DEFAULT_THEME_COLORS = ['#B497CF', '#4d3dff', '#C9A0F5'];
 
 export default function EventDetails({ event }: { event: FestEvent }) {
   const flashSale = useFlashSale(event.slug);
+  const soloVisible =
+    SOLO_3TS_ENABLED || process.env.NODE_ENV !== "production";
 
   return (
     <main className="relative min-h-screen bg-bg-base px-6 pt-32 pb-20 overflow-hidden">
@@ -53,6 +56,12 @@ export default function EventDetails({ event }: { event: FestEvent }) {
           <Detail label="Prize Pool" value={event.prize} />
           {event.registrationFee && (
             <Detail label="Registration Fee" value={event.registrationFee} />
+          )}
+          {event.slug === "hip-hop-dance" && soloVisible && (
+            <Detail
+              label="Solo"
+              value="₹1,500 · limited to 10 registrations"
+            />
           )}
 
           {event.bandSize && (
