@@ -26,6 +26,8 @@ const emptyParticipant = (): Participant => ({
 });
 
 const PRICE_PER_HEAD = 400;
+const ROADIE_PRICE = 200;
+const MAX_ROADIES = 3;
 
 function generateCouponCode() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -51,6 +53,8 @@ export default function Round2Form() {
     emptyParticipant(),
   ]);
   const [openIndex, setOpenIndex] = useState(0);
+  const [roadies, setRoadies] = useState<Participant[]>([]);
+  const [roadieOpenIndex, setRoadieOpenIndex] = useState(0);
   const [techRider, setTechRider] = useState<File | null>(null);
   const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(
     null
@@ -122,13 +126,47 @@ export default function Round2Form() {
     );
   }
 
+  function updateRoadie(
+    index: number,
+    field: keyof Participant,
+    value: string | File | null | boolean
+  ) {
+    setRoadies((prev) =>
+      prev.map((r, i) => {
+        if (i !== index) return r;
+        const updated = { ...r, [field]: value };
+        if (field === "sameAsPoc" && value === true) {
+          updated.institution = participants[0].institution;
+        }
+        return updated;
+      })
+    );
+  }
+
+  function addRoadie() {
+    if (roadies.length >= MAX_ROADIES) return;
+    setRoadies((prev) => [...prev, emptyParticipant()]);
+    setRoadieOpenIndex(roadies.length);
+  }
+
+  function removeRoadie(index: number) {
+    setRoadies((prev) => prev.filter((_, i) => i !== index));
+    setRoadieOpenIndex(0);
+  }
+
   const canProceedToPayment =
     participants.every(
       (p) =>
         p.name && p.phone && p.email && p.institution && p.age && p.idProof
-    ) && techRider;
+    ) &&
+    roadies.every(
+      (r) =>
+        r.name && r.phone && r.email && r.institution && r.age && r.idProof
+    ) &&
+    techRider;
 
-  const total = participants.length * PRICE_PER_HEAD;
+  const total =
+    participants.length * PRICE_PER_HEAD + roadies.length * ROADIE_PRICE;
 
   async function uploadFile(file: File, path: string) {
     const { error: uploadError } = await supabase.storage
@@ -193,6 +231,30 @@ export default function Round2Form() {
           });
 
         if (participantError) throw participantError;
+      }
+
+      for (let i = 0; i < roadies.length; i++) {
+        const r = roadies[i];
+        if (!r.idProof) continue;
+
+        const idPath = `${registration.id}/roadie-${i}-id-${r.idProof.name}`;
+        await uploadFile(r.idProof, idPath);
+
+        const { error: roadieError } = await supabase
+          .from("band_participants")
+          .insert({
+            registration_id: registration.id,
+            name: r.name,
+            phone: r.phone,
+            email: r.email,
+            institution: r.institution,
+            age: parseInt(r.age),
+            id_proof_url: idPath,
+            is_primary_contact: false,
+            is_roadie: true,
+          });
+
+        if (roadieError) throw roadieError;
       }
 
       const newCouponCode = generateCouponCode();
@@ -325,6 +387,50 @@ export default function Round2Form() {
             </div>
 
             <div className="mt-8">
+              <h2 className="text-text-primary font-medium mb-1">
+                Roadies (optional)
+              </h2>
+              <p className="text-text-muted text-sm">
+                Sound engineers, techs, or other crew who need access but
+                aren&apos;t performing.
+              </p>
+              <p className="text-text-muted text-sm mb-4">₹200 per roadie</p>
+
+              <div className="space-y-4">
+                {roadies.map((r, i) => (
+                  <ParticipantCard
+                    key={i}
+                    index={i}
+                    participant={r}
+                    isOpen={roadieOpenIndex === i}
+                    isPrimary={false}
+                    label={`Roadie ${i + 1}`}
+                    onToggle={() =>
+                      setRoadieOpenIndex(roadieOpenIndex === i ? -1 : i)
+                    }
+                    onChange={(field, value) => updateRoadie(i, field, value)}
+                    onRemove={() => removeRoadie(i)}
+                  />
+                ))}
+              </div>
+
+              {roadies.length < MAX_ROADIES && (
+                <button
+                  onClick={addRoadie}
+                  className="mt-4 w-full rounded-xl border border-dashed border-white/20 py-3 text-text-muted hover:border-thermal-accent hover:text-thermal-accent transition-colors"
+                >
+                  + Add Roadie
+                </button>
+              )}
+
+              {roadies.length > 0 && (
+                <p className="text-text-muted text-sm mt-4">
+                  {roadies.length} / {MAX_ROADIES} roadies
+                </p>
+              )}
+            </div>
+
+            <div className="mt-8">
               <label htmlFor={techRiderId} className="block text-text-muted text-sm mb-1">
                 Tech Rider (PDF or PNG)
               </label>
@@ -367,6 +473,11 @@ export default function Round2Form() {
               <p className="text-text-muted text-sm mt-1">
                 {participants.length} members × ₹{PRICE_PER_HEAD}
               </p>
+              {roadies.length > 0 && (
+                <p className="text-text-muted text-sm">
+                  {roadies.length} roadies × ₹{ROADIE_PRICE}
+                </p>
+              )}
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-bg-surface p-4 mb-6 flex flex-col items-center">
@@ -454,18 +565,22 @@ function ParticipantCard({
   participant,
   isOpen,
   isPrimary,
+  label,
   onToggle,
   onChange,
+  onRemove,
 }: {
   index: number;
   participant: Participant;
   isOpen: boolean;
   isPrimary: boolean;
+  label?: string;
   onToggle: () => void;
   onChange: (
     field: keyof Participant,
     value: string | File | null | boolean
   ) => void;
+  onRemove?: () => void;
 }) {
   const isFilled =
     participant.name &&
@@ -485,7 +600,7 @@ function ParticipantCard({
         className="w-full flex items-center justify-between px-6 py-4 text-left"
       >
         <span className="text-text-primary font-medium">
-          {participant.name || `Member ${index + 1}`}
+          {participant.name || label || `Member ${index + 1}`}
           {isPrimary && (
             <span className="text-thermal-accent text-xs ml-2 uppercase">
               Point of Contact
@@ -577,6 +692,15 @@ function ParticipantCard({
               />
             </label>
           </div>
+
+          {onRemove && (
+            <button
+              onClick={onRemove}
+              className="text-thermal-accent text-sm hover:underline"
+            >
+              Remove roadie
+            </button>
+          )}
         </div>
       )}
     </div>

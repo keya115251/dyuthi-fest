@@ -1,10 +1,14 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import type { FestEvent } from "@/app/data/events";
 import Waves from "@/app/components/Waves";
-import { PAYMENT_REQUIRED, TEAM_NOTIFICATION_EMAIL } from "@/app/lib/config";
+import {
+  PAYMENT_REQUIRED,
+  TEAM_NOTIFICATION_EMAIL,
+  SOLO_3TS_ENABLED,
+} from "@/app/lib/config";
 import { useFlashSale } from "@/app/lib/useFlashSale";
 import CountdownTimer from "@/app/components/CountdownTimer";
 
@@ -29,6 +33,8 @@ const emptyMember = (): Member => ({
 });
 
 const PRICE_FLAT = 3115;
+const SOLO_PRICE = 1500;
+const SOLO_MAX_SLOTS = 10;
 const MIN_MEMBERS = 5;
 const MAX_MEMBERS = 25;
 
@@ -43,10 +49,28 @@ function generateCouponCode() {
 
 export default function CrewRegisterForm({ event }: { event: FestEvent }) {
   const flashSale = useFlashSale(event.slug);
+  const soloVisible =
+    SOLO_3TS_ENABLED || process.env.NODE_ENV !== "production";
 
   const [step, setStep] = useState<
     "groupInfo" | "members" | "payment" | "done"
   >("groupInfo");
+
+  const [format, setFormat] = useState<"crew" | "solo">("crew");
+  const [soloSlotsTaken, setSoloSlotsTaken] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!soloVisible) return;
+    supabase
+      .from("solo_3ts_slots")
+      .select("*", { count: "exact", head: true })
+      .eq("claimed", true)
+      .then(({ count }) => setSoloSlotsTaken(count ?? 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const soloFull =
+    soloSlotsTaken !== null && soloSlotsTaken >= SOLO_MAX_SLOTS;
 
   const [crewName, setCrewName] = useState("");
   const [category, setCategory] = useState<"open" | "college">("college");
@@ -103,12 +127,25 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
   }
 
   const canProceedToMembers =
-    crewName && city && stateName && (category === "open" || institution);
+    city &&
+    stateName &&
+    (category === "open" || institution) &&
+    (format === "solo" || crewName);
 
-  const price = flashSale.isActive ? Math.round(PRICE_FLAT * 0.9) : PRICE_FLAT;
+  const price =
+    format === "solo"
+      ? SOLO_PRICE
+      : flashSale.isActive
+      ? Math.round(PRICE_FLAT * 0.9)
+      : PRICE_FLAT;
+
+  const membersFilled =
+    format === "solo"
+      ? members.length === 1
+      : members.length >= MIN_MEMBERS;
 
   const canProceedToPayment =
-    members.length >= MIN_MEMBERS &&
+    membersFilled &&
     members.every(
       (m) => m.name && m.phone && m.email && m.age && m.institution && m.idProof
     ) &&
@@ -116,6 +153,12 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
     (!propsUsed || propsDetails) &&
     declaration1 &&
     declaration2;
+
+  function selectFormat(next: "crew" | "solo") {
+    setFormat(next);
+    setMembers([emptyMember()]);
+    setOpenIndex(0);
+  }
 
   async function uploadFile(file: File, path: string) {
     const { error: uploadError } = await supabase.storage
@@ -135,14 +178,32 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
     setError("");
 
     try {
+      let soloRegistrationId: string | undefined;
+
+      if (format === "solo") {
+        soloRegistrationId = crypto.randomUUID();
+        const { data: slotNumber, error: slotError } = await supabase.rpc(
+          "claim_solo_slot",
+          { reg_id: soloRegistrationId }
+        );
+        if (slotError) throw slotError;
+        if (slotNumber === null) {
+          setError("Sorry, all solo spots have just been filled.");
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const { data: registration, error: regError } = await supabase
         .from("crew_registrations")
         .insert({
-          crew_name: crewName,
+          ...(soloRegistrationId ? { id: soloRegistrationId } : {}),
+          crew_name: format === "solo" ? members[0].name : crewName,
           institution: category === "college" ? institution : null,
           city,
           state: stateName,
           category,
+          format,
           member_count: members.length,
           performance_duration: performanceDuration,
           props_used: propsUsed,
@@ -232,7 +293,8 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
             You&apos;re registered!
           </h1>
           <p className="text-text-muted">
-            {event.name} — {members.length} members
+            {event.name} —{" "}
+            {format === "solo" ? "Solo" : `${members.length} members`}
           </p>
           {couponCode && (
             <div className="mt-6 inline-block rounded-xl border border-thermal-accent/40 bg-thermal-accent/10 px-6 py-4">
@@ -274,13 +336,15 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
         <p className="text-text-muted mb-10">
           {step === "groupInfo" && "Crew details"}
           {step === "members" &&
-            `Add crew members (${MIN_MEMBERS}–${MAX_MEMBERS})`}
+            (format === "solo"
+              ? "Your details"
+              : `Add crew members (${MIN_MEMBERS}–${MAX_MEMBERS})`)}
           {step === "payment" && "Payment"}
         </p>
 
         {step === "groupInfo" && (
           <>
-            {flashSale.isActive && (
+            {flashSale.isActive && format === "crew" && (
               <div className="rounded-xl border border-thermal-accent bg-thermal-accent/10 p-4 mb-8">
                 <p className="text-thermal-accent font-medium text-sm">
                   ✨ Flash Sale: 10% off, ends in{" "}
@@ -290,7 +354,49 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
             )}
 
             <div className="space-y-4 mb-8">
-              <Input label="Crew Name" value={crewName} onChange={setCrewName} />
+              {soloVisible && (
+                <fieldset>
+                  <legend className="block text-text-muted text-sm mb-2">
+                    Registration Type
+                  </legend>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 text-text-muted text-sm">
+                      <input
+                        type="radio"
+                        checked={format === "crew"}
+                        onChange={() => selectFormat("crew")}
+                        className="cursor-target w-5 h-5"
+                      />
+                      Crew
+                    </label>
+                    {soloFull ? (
+                      <span className="text-text-muted text-sm">
+                        Solo registration is full
+                      </span>
+                    ) : (
+                      <label className="flex items-center gap-2 text-text-muted text-sm">
+                        <input
+                          type="radio"
+                          checked={format === "solo"}
+                          onChange={() => selectFormat("solo")}
+                          disabled={soloSlotsTaken === null}
+                          className="cursor-target w-5 h-5"
+                        />
+                        Solo
+                      </label>
+                    )}
+                  </div>
+                  {soloSlotsTaken !== null && (
+                    <p className="text-text-muted text-xs mt-1">
+                      {soloSlotsTaken} / {SOLO_MAX_SLOTS} solo spots taken
+                    </p>
+                  )}
+                </fieldset>
+              )}
+
+              {format === "crew" && (
+                <Input label="Crew Name" value={crewName} onChange={setCrewName} />
+              )}
 
               <div>
                 <label htmlFor={categoryId} className="block text-text-muted text-sm mb-1">
@@ -341,15 +447,16 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
                   member={m}
                   isOpen={openIndex === i}
                   isLeader={i === 0}
+                  showLeaderBadge={format === "crew" && i === 0}
                   onToggle={() => setOpenIndex(openIndex === i ? -1 : i)}
                   onChange={(field, value) => updateMember(i, field, value)}
                   onRemove={() => removeMember(i)}
-                  canRemove={members.length > 1}
+                  canRemove={format === "crew" && members.length > 1}
                 />
               ))}
             </div>
 
-            {members.length < MAX_MEMBERS && (
+            {format === "crew" && members.length < MAX_MEMBERS && (
               <button
                 onClick={addMember}
                 className="mt-4 w-full rounded-xl border border-dashed border-white/20 py-3 text-text-muted hover:border-thermal-accent hover:text-thermal-accent transition-colors"
@@ -358,11 +465,13 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
               </button>
             )}
 
-            <p className="text-text-muted text-sm mt-4">
-              {members.length} / {MAX_MEMBERS} members
-              {members.length < MIN_MEMBERS &&
-                ` — minimum ${MIN_MEMBERS} required`}
-            </p>
+            {format === "crew" && (
+              <p className="text-text-muted text-sm mt-4">
+                {members.length} / {MAX_MEMBERS} members
+                {members.length < MIN_MEMBERS &&
+                  ` — minimum ${MIN_MEMBERS} required`}
+              </p>
+            )}
 
             <div className="mt-8 space-y-4">
               <Input
@@ -440,7 +549,7 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
 
         {step === "payment" && (
           <>
-            {flashSale.isActive && (
+            {flashSale.isActive && format === "crew" && (
               <div className="rounded-xl border border-thermal-accent bg-thermal-accent/10 p-4 mb-6">
                 <p className="text-thermal-accent font-medium text-sm">
                   ✨ Flash Sale: 10% off, ends in{" "}
@@ -459,8 +568,8 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
                     ₹{price}
                   </p>
                   <p className="text-text-muted text-sm mt-1">
-                    Flat fee per crew
-                    {flashSale.isActive && (
+                    {format === "solo" ? "Flat fee (solo)" : "Flat fee per crew"}
+                    {flashSale.isActive && format === "crew" && (
                       <span className="text-thermal-accent ml-2">
                         (10% off applied)
                       </span>
@@ -565,6 +674,7 @@ function MemberCard({
   member,
   isOpen,
   isLeader,
+  showLeaderBadge,
   onToggle,
   onChange,
   onRemove,
@@ -574,6 +684,7 @@ function MemberCard({
   member: Member;
   isOpen: boolean;
   isLeader: boolean;
+  showLeaderBadge: boolean;
   onToggle: () => void;
   onChange: (
     field: keyof Member,
@@ -601,7 +712,7 @@ function MemberCard({
       >
         <span className="text-text-primary font-medium">
           {member.name || `Member ${index + 1}`}
-          {isLeader && (
+          {showLeaderBadge && (
             <span className="text-thermal-accent text-xs ml-2 uppercase">
               Crew Leader
             </span>

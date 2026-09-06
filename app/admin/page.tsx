@@ -66,6 +66,7 @@ type CrewRegistration = {
   created_at: string;
   crew_name: string;
   category: string;
+  format: string | null;
   institution: string | null;
   city: string;
   state: string;
@@ -92,6 +93,7 @@ type BandParticipant = {
   institution: string;
   id_proof_url: string | null;
   is_primary_contact: boolean;
+  is_roadie: boolean | null;
   id_name_match_score: number | null;
   needs_review: boolean | null;
 };
@@ -337,7 +339,7 @@ async function renderUdcDashboard(heading: string, tabs?: ReactNode) {
         <div className="min-w-[1600px] divide-y divide-white/10">
           <div
             className="grid gap-2 bg-bg-surface text-text-muted text-xs uppercase tracking-wide px-4 py-3"
-            style={{ gridTemplateColumns: GRID_16 }}
+            style={{ gridTemplateColumns: GRID_UDC }}
           >
             {UDC_COLUMNS.map((c) => (
               <span key={c}>{c}</span>
@@ -352,10 +354,13 @@ async function renderUdcDashboard(heading: string, tabs?: ReactNode) {
                     ? "border-l-4 border-thermal-accent bg-thermal-accent/5"
                     : ""
                 }`}
-                style={{ gridTemplateColumns: GRID_16 }}
+                style={{ gridTemplateColumns: GRID_UDC }}
               >
                 <span className="max-w-40 wrap-break-word" title={r.crew_name}>
                   {r.crew_name}
+                </span>
+                <span className="capitalize">
+                  {r.format === "solo" ? "Solo" : "Crew"}
                 </span>
                 <span className="capitalize">{r.category}</span>
                 <span
@@ -777,6 +782,7 @@ type GenericMember = {
   is_head?: boolean;
   is_leader?: boolean;
   is_primary_contact?: boolean;
+  is_roadie?: boolean | null;
 };
 
 function ParticipantTable({
@@ -816,6 +822,11 @@ function ParticipantTable({
               {m[leaderKey] && (
                 <span className="text-thermal-accent text-xs ml-2 uppercase">
                   {leaderLabel}
+                </span>
+              )}
+              {m.is_roadie && (
+                <span className="inline-block rounded-full bg-white/10 text-text-muted text-xs font-semibold ml-2 px-2 py-0.5 uppercase">
+                  Roadie
                 </span>
               )}
             </td>
@@ -923,6 +934,7 @@ async function buildSignedUrlMap(
 // Review/Match columns are hidden via SHOW_OCR_VERIFICATION - keep these in
 // sync with LAASYA_COLUMNS/UDC_COLUMNS/BAND_COLUMNS below.
 const GRID_16 = `repeat(${SHOW_OCR_VERIFICATION ? 16 : 14}, minmax(100px, 1fr)) 32px`;
+const GRID_UDC = `repeat(${SHOW_OCR_VERIFICATION ? 17 : 15}, minmax(100px, 1fr)) 32px`;
 const GRID_12 = `repeat(${SHOW_OCR_VERIFICATION ? 14 : 13}, minmax(110px, 1fr)) 32px`;
 const GRID_11 = `repeat(11, minmax(100px, 1fr))`;
 
@@ -950,6 +962,7 @@ const LAASYA_COLUMNS = [
 
 const UDC_COLUMNS = [
   "Crew Name",
+  "Format",
   "Category",
   "Institution",
   "City",
