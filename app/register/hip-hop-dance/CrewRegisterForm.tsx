@@ -410,8 +410,12 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
                   }
                   className="cursor-target w-full rounded-lg bg-bg-surface border border-white/10 px-4 py-2 text-text-primary focus:border-thermal-accent outline-none"
                 >
-                  <option value="college">College Crew</option>
-                  <option value="open">Open Crew</option>
+                  <option value="college">
+                    {format === "solo" ? "College" : "College Crew"}
+                  </option>
+                  <option value="open">
+                    {format === "solo" ? "Open" : "Open Crew"}
+                  </option>
                 </select>
               </div>
 
