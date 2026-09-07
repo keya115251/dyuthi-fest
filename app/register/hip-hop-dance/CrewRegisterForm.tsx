@@ -33,7 +33,7 @@ const emptyMember = (): Member => ({
 });
 
 const PRICE_FLAT = 3115;
-const SOLO_PRICE = 1500;
+const SOLO_PRICE = 899;
 const SOLO_MAX_SLOTS = 10;
 const MIN_MEMBERS = 5;
 const MAX_MEMBERS = 25;

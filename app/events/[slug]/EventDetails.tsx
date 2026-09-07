@@ -60,7 +60,7 @@ export default function EventDetails({ event }: { event: FestEvent }) {
           {event.slug === "hip-hop-dance" && soloVisible && (
             <Detail
               label="Solo"
-              value="₹1,500 · limited to 10 registrations"
+              value="₹899 · limited to 10 registrations"
             />
           )}
 
