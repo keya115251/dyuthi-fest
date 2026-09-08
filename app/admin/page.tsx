@@ -164,6 +164,7 @@ type WorkshopRegistration = {
   payee_phone: string | null;
   utr_reference: string | null;
   payment_screenshot_url: string | null;
+  id_proof_url: string | null;
 };
 
 // ---------- page ----------
@@ -750,9 +751,12 @@ async function renderWorkshopDashboard(tabs?: ReactNode) {
 
   const registrations = (data ?? []) as WorkshopRegistration[];
 
-  const urls = await buildSignedUrlMap(
-    registrations.map((r) => r.payment_screenshot_url)
-  );
+  const paths: (string | null)[] = [];
+  for (const r of registrations) {
+    paths.push(r.payment_screenshot_url);
+    paths.push(r.id_proof_url);
+  }
+  const urls = await buildSignedUrlMap(paths);
 
   return (
     <DashboardShell
@@ -809,6 +813,9 @@ async function renderWorkshopDashboard(tabs?: ReactNode) {
               </span>
               <span>
                 <FileLink url={urls.get(r.payment_screenshot_url ?? "")} />
+              </span>
+              <span>
+                <FileLink url={urls.get(r.id_proof_url ?? "")} />
               </span>
             </div>
           ))}
@@ -1042,7 +1049,7 @@ const GRID_16 = `repeat(${SHOW_OCR_VERIFICATION ? 16 : 14}, minmax(100px, 1fr)) 
 const GRID_UDC = `repeat(${SHOW_OCR_VERIFICATION ? 17 : 15}, minmax(100px, 1fr)) 32px`;
 const GRID_12 = `repeat(${SHOW_OCR_VERIFICATION ? 14 : 13}, minmax(110px, 1fr)) 32px`;
 const GRID_11 = `repeat(11, minmax(100px, 1fr))`;
-const GRID_WORKSHOP = `repeat(12, minmax(100px, 1fr))`;
+const GRID_WORKSHOP = `repeat(13, minmax(100px, 1fr))`;
 
 const OCR_SUMMARY_COLUMNS = SHOW_OCR_VERIFICATION ? ["Review", "Match"] : [];
 const OCR_BAND_SUMMARY_COLUMNS = SHOW_OCR_VERIFICATION ? ["Review"] : [];
@@ -1113,6 +1120,7 @@ const WORKSHOP_COLUMNS = [
   "UTR",
   "Coupon",
   "Screenshot",
+  "ID Proof",
 ];
 
 const BAND_COLUMNS = [

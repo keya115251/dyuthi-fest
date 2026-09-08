@@ -54,6 +54,7 @@ export default function WorkshopRegisterForm() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [institution, setInstitution] = useState("");
+  const [idProof, setIdProof] = useState<File | null>(null);
 
   // null = still loading the count
   const [slotsClaimed, setSlotsClaimed] = useState<number | null>(null);
@@ -68,6 +69,7 @@ export default function WorkshopRegisterForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const paymentScreenshotId = useId();
+  const idProofId = useId();
 
   useEffect(() => {
     supabase
@@ -82,7 +84,8 @@ export default function WorkshopRegisterForm() {
     name.trim() !== "" &&
     phone.length === 10 &&
     email.trim() !== "" &&
-    institution.trim() !== "";
+    institution.trim() !== "" &&
+    idProof !== null;
 
   // Tier the next registration lands in, estimated from the live count so we
   // can show a price before they start. The authoritative price comes back
@@ -141,7 +144,7 @@ export default function WorkshopRegisterForm() {
       setError("Please upload your payment screenshot.");
       return;
     }
-    if (!regId || !claimedSlot) {
+    if (!regId || !claimedSlot || !idProof) {
       setError("Something went wrong. Please start again.");
       return;
     }
@@ -199,6 +202,18 @@ export default function WorkshopRegisterForm() {
         .single();
 
       if (regError || !registration) throw regError;
+
+      const idProofPath = `${registration.id}/id-proof-${idProof.name}`;
+      const { error: idUploadError } = await supabase.storage
+        .from("registration-uploads")
+        .upload(idProofPath, idProof);
+
+      if (idUploadError) throw idUploadError;
+
+      await supabase
+        .from("workshop_registrations")
+        .update({ id_proof_url: idProofPath })
+        .eq("id", registration.id);
 
       if (paymentScreenshot) {
         const paymentPath = `${registration.id}/payment-screenshot-${paymentScreenshot.name}`;
@@ -338,6 +353,30 @@ export default function WorkshopRegisterForm() {
                 onChange={setInstitution}
                 hint='Graduated or no current institution? Enter "N/A".'
               />
+
+              <div>
+                <label
+                  htmlFor={idProofId}
+                  className="block text-text-muted text-sm mb-1"
+                >
+                  ID Proof (PDF or PNG)
+                </label>
+                <label className="flex items-center justify-between w-full rounded-lg bg-bg-surface border border-dashed border-white/20 px-4 py-3 cursor-pointer hover:border-thermal-accent transition-colors">
+                  <span className="text-text-muted text-sm truncate">
+                    {idProof ? idProof.name : "Click to upload file"}
+                  </span>
+                  <span className="text-thermal-accent text-sm flex-shrink-0 ml-3">
+                    {idProof ? "Change" : "Upload"}
+                  </span>
+                  <input
+                    id={idProofId}
+                    type="file"
+                    accept="application/pdf,image/png"
+                    onChange={(e) => setIdProof(e.target.files?.[0] || null)}
+                    className="hidden cursor-target"
+                  />
+                </label>
+              </div>
             </div>
 
             {error && (
