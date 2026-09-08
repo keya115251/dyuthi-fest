@@ -26,3 +26,8 @@ export const FLASH_SALE_DEV_PREVIEW = process.env.NODE_ENV !== "production";
 // category for 3T's. Always visible in development so it can be tested
 // locally regardless of this flag.
 export const SOLO_3TS_ENABLED = true;
+
+// Hard deadline for competition entries: Aangikam, 3T's Crew, and Battle of
+// the Bands Round 1. Does NOT apply to 3T's Solo or Round 2 (which is gated
+// separately by band selection status). 11:59:59 PM IST, Sept 9 2026.
+export const REGISTRATION_CLOSES_AT = "2026-09-09T18:29:59.000Z";

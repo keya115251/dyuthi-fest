@@ -4,8 +4,10 @@ import { useId, useState } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import type { FestEvent } from "@/app/data/events";
 import Waves from "@/app/components/Waves";
+import TransitionLink from "@/app/components/TransitionLink";
 import { PAYMENT_REQUIRED, TEAM_NOTIFICATION_EMAIL } from "@/app/lib/config";
 import { useFlashSale } from "@/app/lib/useFlashSale";
+import { useRegistrationOpen } from "@/app/lib/useRegistrationOpen";
 import CountdownTimer from "@/app/components/CountdownTimer";
 
 type Participant = {
@@ -56,6 +58,7 @@ function generateCouponCode() {
 
 export default function DanceRegisterForm({ event }: { event: FestEvent }) {
   const flashSale = useFlashSale(event.slug);
+  const registrationOpen = useRegistrationOpen();
 
   const [step, setStep] = useState<
     "details" | "participants" | "payment" | "done"
@@ -205,6 +208,13 @@ export default function DanceRegisterForm({ event }: { event: FestEvent }) {
       }
 
       const newCouponCode = generateCouponCode();
+      await supabase.from("coupons").insert({
+        code: newCouponCode,
+        source_table: "dance_registrations",
+        source_registration_id: registration.id,
+        max_uses: participants.length,
+        discount_percent: 40,
+      });
       await supabase
         .from("dance_registrations")
         .update({ coupon_code: newCouponCode })
@@ -236,6 +246,28 @@ export default function DanceRegisterForm({ event }: { event: FestEvent }) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (!registrationOpen && step !== "done") {
+    return (
+      <main className="min-h-screen bg-bg-base flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <h1 className="font-heading text-4xl text-text-primary mb-4">
+            Registration Closed
+          </h1>
+          <p className="text-text-muted">
+            Registration for {event.name} closed on September 9, 2026. The
+            deadline has passed and entries are no longer being accepted.
+          </p>
+          <TransitionLink
+            href={`/events/${event.slug}`}
+            className="cursor-target inline-block mt-6 text-thermal-accent hover:underline"
+          >
+            ← Back to {event.title}
+          </TransitionLink>
+        </div>
+      </main>
+    );
   }
 
   if (step === "done") {

@@ -26,7 +26,13 @@ const calendar = [
     day: "Day 2 — September 19",
     slots: [
       { time: "All Day", event: "Veni, Vidi, Vici.", host: "Chaitanya Geethi x Vaadya" },
-      { time: "Parallel", event: "Workshop / Celebrity Session 1", host: "United Dance Crew", tba: true },
+      {
+        time: "Parallel",
+        event: "Hip-Hop Dance Workshop with Rajaram",
+        host: "BFAB Dance Crew",
+        detail: "September 19 · 3 hours",
+        href: "/register/workshop/hip-hop-rajaram",
+      },
       { time: "Parallel", event: "Workshop / Celebrity Session 2", host: "Chaitanya Laasya", tba: true },
     ],
   },
@@ -283,13 +289,24 @@ export default function Home() {
                   <div>
                     <p className="text-text-primary font-medium">
                       {slot.event}
-                      {slot.tba && (
+                      {"tba" in slot && slot.tba && (
                         <span className="ml-2 text-text-muted text-xs italic">
                           To be announced
                         </span>
                       )}
                     </p>
+                    {"detail" in slot && slot.detail && (
+                      <p className="text-thermal-accent text-sm">{slot.detail}</p>
+                    )}
                     <p className="text-text-muted text-sm">{slot.host}</p>
+                    {"href" in slot && slot.href && (
+                      <TransitionLink
+                        href={slot.href}
+                        className="cursor-target inline-block mt-2 text-sm text-thermal-accent hover:underline"
+                      >
+                        Register →
+                      </TransitionLink>
+                    )}
                   </div>
                   <span className="text-text-muted text-sm uppercase tracking-wide">
                     {slot.time}

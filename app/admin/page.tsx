@@ -10,6 +10,7 @@ import LogoutButton from "./LogoutButton";
 
 const STORAGE_BUCKET = "registration-uploads";
 const SIGNED_URL_EXPIRY_SECONDS = 60 * 60;
+const WORKSHOP_SLUG = "hip-hop-workshop-rajaram";
 
 // ---------- shared types ----------
 
@@ -147,15 +148,34 @@ type AudienceRegistration = {
   payment_screenshot_url: string | null;
 };
 
+type WorkshopRegistration = {
+  id: string;
+  created_at: string;
+  workshop_slug: string;
+  name: string;
+  phone: string;
+  email: string;
+  institution: string;
+  tier: string | number | null;
+  amount_paid: number;
+  payment_pending: boolean;
+  coupon_code_used: string | null;
+  payee_name: string | null;
+  payee_phone: string | null;
+  utr_reference: string | null;
+  payment_screenshot_url: string | null;
+};
+
 // ---------- page ----------
 
-type AdminView = "dance" | "crew" | "band" | "audience";
+type AdminView = "dance" | "crew" | "band" | "audience" | "workshop";
 
 const VIEW_TABS: { id: AdminView; label: string }[] = [
   { id: "dance", label: "Aangikam (Dance)" },
   { id: "crew", label: "3T's (Crew)" },
   { id: "band", label: "Veni Vidi Vici (Band)" },
   { id: "audience", label: "Audience" },
+  { id: "workshop", label: "Hip-Hop Workshop" },
 ];
 
 export default async function AdminDashboard({
@@ -178,7 +198,12 @@ export default async function AdminDashboard({
   // main admin — pick which club's data to view via ?view=, one table at a time
   const { view } = await searchParams;
   const selected: AdminView =
-    view === "crew" || view === "band" || view === "audience" ? view : "dance";
+    view === "crew" ||
+    view === "band" ||
+    view === "audience" ||
+    view === "workshop"
+      ? view
+      : "dance";
 
   const tabs = <AdminViewTabs current={selected} />;
 
@@ -186,6 +211,7 @@ export default async function AdminDashboard({
   if (selected === "band")
     return renderBandDashboard(clubs["geethi-vaadya"].eventName, tabs);
   if (selected === "audience") return renderAudienceDashboard(tabs);
+  if (selected === "workshop") return renderWorkshopDashboard(tabs);
   return renderLaasyaDashboard(clubs.laasya.eventName, tabs);
 }
 
@@ -713,6 +739,85 @@ async function renderAudienceDashboard(tabs?: ReactNode) {
   );
 }
 
+// ---------- workshop dashboard (main admin only) ----------
+
+async function renderWorkshopDashboard(tabs?: ReactNode) {
+  const { data, error } = await supabaseAdmin
+    .from("workshop_registrations")
+    .select("*")
+    .eq("workshop_slug", WORKSHOP_SLUG)
+    .order("created_at", { ascending: false });
+
+  const registrations = (data ?? []) as WorkshopRegistration[];
+
+  const urls = await buildSignedUrlMap(
+    registrations.map((r) => r.payment_screenshot_url)
+  );
+
+  return (
+    <DashboardShell
+      heading="Hip-Hop Dance Workshop (Rajaram)"
+      count={registrations.length}
+      error={!!error}
+      tabs={tabs}
+    >
+      <div className="rounded-2xl border border-white/10 overflow-x-auto">
+        <div className="min-w-350 divide-y divide-white/10">
+          <div
+            className="grid gap-2 bg-bg-surface text-text-muted text-xs uppercase tracking-wide px-4 py-3"
+            style={{ gridTemplateColumns: GRID_WORKSHOP }}
+          >
+            {WORKSHOP_COLUMNS.map((c) => (
+              <span key={c}>{c}</span>
+            ))}
+          </div>
+
+          {registrations.map((r) => (
+            <div
+              key={r.id}
+              className="grid gap-2 items-center px-4 py-3 text-text-primary text-sm"
+              style={{ gridTemplateColumns: GRID_WORKSHOP }}
+            >
+              <span className="max-w-40 wrap-break-word" title={r.name}>
+                {r.name}
+              </span>
+              <span>{r.phone}</span>
+              <span className="max-w-40 wrap-break-word" title={r.email}>
+                {r.email}
+              </span>
+              <span className="max-w-40 wrap-break-word" title={r.institution}>
+                {r.institution}
+              </span>
+              <span>{r.tier ?? "—"}</span>
+              <span>₹{r.amount_paid}</span>
+              <span>{formatBool(r.payment_pending)}</span>
+              <span
+                className="max-w-40 wrap-break-word"
+                title={r.payee_name ?? undefined}
+              >
+                {r.payee_name ?? "—"}
+              </span>
+              <span>{r.payee_phone ?? "—"}</span>
+              <span
+                className="max-w-40 wrap-break-word"
+                title={r.utr_reference ?? undefined}
+              >
+                {r.utr_reference ?? "—"}
+              </span>
+              <span className="font-mono text-xs">
+                {r.coupon_code_used ?? "—"}
+              </span>
+              <span>
+                <FileLink url={urls.get(r.payment_screenshot_url ?? "")} />
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </DashboardShell>
+  );
+}
+
 // ---------- layout helpers ----------
 
 function DashboardShell({
@@ -937,6 +1042,7 @@ const GRID_16 = `repeat(${SHOW_OCR_VERIFICATION ? 16 : 14}, minmax(100px, 1fr)) 
 const GRID_UDC = `repeat(${SHOW_OCR_VERIFICATION ? 17 : 15}, minmax(100px, 1fr)) 32px`;
 const GRID_12 = `repeat(${SHOW_OCR_VERIFICATION ? 14 : 13}, minmax(110px, 1fr)) 32px`;
 const GRID_11 = `repeat(11, minmax(100px, 1fr))`;
+const GRID_WORKSHOP = `repeat(12, minmax(100px, 1fr))`;
 
 const OCR_SUMMARY_COLUMNS = SHOW_OCR_VERIFICATION ? ["Review", "Match"] : [];
 const OCR_BAND_SUMMARY_COLUMNS = SHOW_OCR_VERIFICATION ? ["Review"] : [];
@@ -991,6 +1097,21 @@ const AUDIENCE_COLUMNS = [
   "Payee",
   "Payee Phone",
   "UTR",
+  "Screenshot",
+];
+
+const WORKSHOP_COLUMNS = [
+  "Name",
+  "Phone",
+  "Email",
+  "Institution",
+  "Tier",
+  "Amount",
+  "Pending",
+  "Payee",
+  "Payee Phone",
+  "UTR",
+  "Coupon",
   "Screenshot",
 ];
 

@@ -3,11 +3,14 @@
 import { useId, useState } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import Waves from "@/app/components/Waves";
+import TransitionLink from "@/app/components/TransitionLink";
 import { PAYMENT_REQUIRED, TEAM_NOTIFICATION_EMAIL } from "@/app/lib/config";
+import { useRegistrationOpen } from "@/app/lib/useRegistrationOpen";
 
 const ROUND1_FEE = 100;
 
 export default function BandRegisterForm() {
+  const registrationOpen = useRegistrationOpen();
   const [step, setStep] = useState<"details" | "payment" | "done">("details");
 
   const [bandName, setBandName] = useState("");
@@ -133,6 +136,29 @@ const canProceedToPayment =
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (!registrationOpen && step !== "done") {
+    return (
+      <main className="min-h-screen bg-bg-base flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <h1 className="font-heading text-4xl text-text-primary mb-4">
+            Registration Closed
+          </h1>
+          <p className="text-text-muted">
+            Round 1 registration for Battle of the Bands closed on
+            September 9, 2026. The deadline has passed and entries are no
+            longer being accepted.
+          </p>
+          <TransitionLink
+            href="/events/battle-of-the-bands"
+            className="cursor-target inline-block mt-6 text-thermal-accent hover:underline"
+          >
+            ← Back to Veni, Vidi, Vici.
+          </TransitionLink>
+        </div>
+      </main>
+    );
   }
 
   if (step === "done") {

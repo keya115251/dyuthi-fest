@@ -258,6 +258,13 @@ export default function Round2Form() {
       }
 
       const newCouponCode = generateCouponCode();
+      await supabase.from("coupons").insert({
+        code: newCouponCode,
+        source_table: "band_registrations",
+        source_registration_id: registration.id,
+        max_uses: participants.length,
+        discount_percent: 40,
+      });
       await supabase
         .from("band_registrations")
         .update({ coupon_code: newCouponCode })

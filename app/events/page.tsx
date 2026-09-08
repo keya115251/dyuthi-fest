@@ -18,9 +18,11 @@ const workshops = [
   },
   {
     id: "workshop-2",
-    title: "Workshop / Celebrity Session",
-    host: "United Dance Crew",
+    title: "Hip-Hop Dance Workshop with Rajaram",
+    host: "BFAB Dance Crew",
     day: "Day 2",
+    details: "September 19 · 3 hours",
+    href: "/register/workshop/hip-hop-rajaram",
     image: "/workshops/udc.jpg",
   },
   {
@@ -186,8 +188,20 @@ export default function EventsPage() {
                       <h3 className="font-heading text-xl md:text-2xl text-text-primary">
                         {workshop.title}
                       </h3>
-                      <p className="text-text-muted text-sm italic">To be announced</p>
+                      {"details" in workshop && workshop.details ? (
+                        <p className="text-thermal-accent text-sm">{workshop.details}</p>
+                      ) : (
+                        <p className="text-text-muted text-sm italic">To be announced</p>
+                      )}
                       <p className="mt-2 text-text-muted">{workshop.host}</p>
+                      {"href" in workshop && workshop.href && (
+                        <TransitionLink
+                          href={workshop.href}
+                          className="cursor-target inline-block mt-3 self-start px-4 py-2 rounded-full bg-thermal-accent text-bg-base text-sm font-semibold hover:opacity-90 transition-opacity"
+                        >
+                          Register
+                        </TransitionLink>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -214,8 +228,20 @@ export default function EventsPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
                   <div className="relative z-10 h-full flex flex-col justify-end p-4">
                     <h3 className="font-heading text-xl text-text-primary">{workshop.title}</h3>
-                    <p className="text-text-muted text-sm italic">To be announced</p>
+                    {"details" in workshop && workshop.details ? (
+                      <p className="text-thermal-accent text-sm">{workshop.details}</p>
+                    ) : (
+                      <p className="text-text-muted text-sm italic">To be announced</p>
+                    )}
                     <p className="mt-2 text-text-muted">{workshop.host}</p>
+                    {"href" in workshop && workshop.href && (
+                      <TransitionLink
+                        href={workshop.href}
+                        className="cursor-target inline-block mt-3 self-start px-4 py-2 rounded-full bg-thermal-accent text-bg-base text-sm font-semibold hover:opacity-90 transition-opacity"
+                      >
+                        Register
+                      </TransitionLink>
+                    )}
                   </div>
                 </div>
               </div>

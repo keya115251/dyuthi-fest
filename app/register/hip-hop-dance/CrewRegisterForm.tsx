@@ -4,12 +4,14 @@ import { useEffect, useId, useState } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import type { FestEvent } from "@/app/data/events";
 import Waves from "@/app/components/Waves";
+import TransitionLink from "@/app/components/TransitionLink";
 import {
   PAYMENT_REQUIRED,
   TEAM_NOTIFICATION_EMAIL,
   SOLO_3TS_ENABLED,
 } from "@/app/lib/config";
 import { useFlashSale } from "@/app/lib/useFlashSale";
+import { useRegistrationOpen } from "@/app/lib/useRegistrationOpen";
 import CountdownTimer from "@/app/components/CountdownTimer";
 
 type Member = {
@@ -49,6 +51,7 @@ function generateCouponCode() {
 
 export default function CrewRegisterForm({ event }: { event: FestEvent }) {
   const flashSale = useFlashSale(event.slug);
+  const registrationOpen = useRegistrationOpen();
   const soloVisible =
     SOLO_3TS_ENABLED || process.env.NODE_ENV !== "production";
 
@@ -252,6 +255,17 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
       }
 
       const newCouponCode = generateCouponCode();
+      // Crew registrations issue a reusable coupon (one use per member); solo
+      // entries don't.
+      if (format === "crew") {
+        await supabase.from("coupons").insert({
+          code: newCouponCode,
+          source_table: "crew_registrations",
+          source_registration_id: registration.id,
+          max_uses: members.length,
+          discount_percent: 40,
+        });
+      }
       await supabase
         .from("crew_registrations")
         .update({ coupon_code: newCouponCode })
@@ -306,6 +320,40 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
               </p>
             </div>
           )}
+        </div>
+      </main>
+    );
+  }
+
+  // Crew registration has a hard deadline (REGISTRATION_CLOSES_AT); Solo does
+  // not. Only gate the crew flow - keep the Solo option and its full flow
+  // reachable via the escape hatch below.
+  if (!registrationOpen && format === "crew") {
+    return (
+      <main className="min-h-screen bg-bg-base flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <h1 className="font-heading text-4xl text-text-primary mb-4">
+            Registration Closed
+          </h1>
+          <p className="text-text-muted">
+            Crew registration for {event.name} closed on September 9, 2026.
+            The deadline has passed and crew entries are no longer being
+            accepted.
+          </p>
+          {soloVisible && !soloFull && (
+            <button
+              onClick={() => selectFormat("solo")}
+              className="cursor-target block mx-auto mt-6 text-thermal-accent hover:underline"
+            >
+              Register as a solo entry instead →
+            </button>
+          )}
+          <TransitionLink
+            href={`/events/${event.slug}`}
+            className="cursor-target inline-block mt-4 text-thermal-accent hover:underline"
+          >
+            ← Back to {event.title}
+          </TransitionLink>
         </div>
       </main>
     );
