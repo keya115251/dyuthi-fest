@@ -52,7 +52,7 @@ export const events: FestEvent[] = [
   image: "/events/battle-of-the-bands.jpg",
   bandSize: { min: 3, max: 10 },
   submissionFormat: "Online video submission (5–6 min max)",
-  selectionCount: 20,
+  selectionCount: 15,
   performanceTime: "20 minutes",
   setupTime: "10 minutes (soundcheck + setup)",
   rulesPdf: "https://docs.google.com/document/d/1B6iVKGZfn49S16MM3c6iV7uI3chS7RWEs4eRv4rEq0c/edit?usp=sharing",
