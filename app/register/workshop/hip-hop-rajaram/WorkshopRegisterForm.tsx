@@ -15,19 +15,17 @@ const TIER_1_PRICE = 599;
 const TIER_2_PRICE = 699;
 const ON_SPOT_PRICE = 799;
 
-// Shape returned by the claim_workshop_slot RPC. The tables were created
-// outside this repo, so these field names are assumed - see the note in the
-// handoff. If the real function returns different keys, adjust readSlot().
+// Parsed from the claim_workshop_slot RPC row, whose columns are
+// out_slot_number / out_tier / out_price.
 type ClaimedSlot = { tier: string | number; price: number };
 
 function readSlot(data: unknown): ClaimedSlot | null {
   const row = Array.isArray(data) ? data[0] : data;
   if (!row || typeof row !== "object") return null;
   const r = row as Record<string, unknown>;
-  const rawPrice = r.price ?? r.amount_paid ?? r.amount;
-  const price = Number(rawPrice);
+  const price = Number(r.out_price);
   if (Number.isNaN(price)) return null;
-  const tier = (r.tier ?? r.tier_name ?? "") as string | number;
+  const tier = (r.out_tier ?? "") as string | number;
   return { tier, price };
 }
 
