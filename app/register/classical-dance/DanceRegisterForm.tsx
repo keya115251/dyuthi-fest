@@ -5,7 +5,11 @@ import { supabase } from "@/app/lib/supabase/client";
 import type { FestEvent } from "@/app/data/events";
 import Waves from "@/app/components/Waves";
 import TransitionLink from "@/app/components/TransitionLink";
-import { PAYMENT_REQUIRED, TEAM_NOTIFICATION_EMAIL } from "@/app/lib/config";
+import {
+  PAYMENT_REQUIRED,
+  TEAM_NOTIFICATION_EMAIL,
+  AANGIKAM_CLOSES_AT,
+} from "@/app/lib/config";
 import { useFlashSale } from "@/app/lib/useFlashSale";
 import { useRegistrationOpen } from "@/app/lib/useRegistrationOpen";
 import CountdownTimer from "@/app/components/CountdownTimer";
@@ -58,7 +62,7 @@ function generateCouponCode() {
 
 export default function DanceRegisterForm({ event }: { event: FestEvent }) {
   const flashSale = useFlashSale(event.slug);
-  const registrationOpen = useRegistrationOpen();
+  const registrationOpen = useRegistrationOpen(AANGIKAM_CLOSES_AT);
 
   const [step, setStep] = useState<
     "details" | "participants" | "payment" | "done"

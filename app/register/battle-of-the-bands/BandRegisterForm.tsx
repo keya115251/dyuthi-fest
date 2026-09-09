@@ -4,13 +4,17 @@ import { useId, useState } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import Waves from "@/app/components/Waves";
 import TransitionLink from "@/app/components/TransitionLink";
-import { PAYMENT_REQUIRED, TEAM_NOTIFICATION_EMAIL } from "@/app/lib/config";
+import {
+  PAYMENT_REQUIRED,
+  TEAM_NOTIFICATION_EMAIL,
+  BAND_ROUND1_CLOSES_AT,
+} from "@/app/lib/config";
 import { useRegistrationOpen } from "@/app/lib/useRegistrationOpen";
 
 const ROUND1_FEE = 100;
 
 export default function BandRegisterForm() {
-  const registrationOpen = useRegistrationOpen();
+  const registrationOpen = useRegistrationOpen(BAND_ROUND1_CLOSES_AT);
   const [step, setStep] = useState<"details" | "payment" | "done">("details");
 
   const [bandName, setBandName] = useState("");

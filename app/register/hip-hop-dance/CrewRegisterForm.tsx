@@ -9,6 +9,7 @@ import {
   PAYMENT_REQUIRED,
   TEAM_NOTIFICATION_EMAIL,
   SOLO_3TS_ENABLED,
+  HIPHOP_CREW_CLOSES_AT,
 } from "@/app/lib/config";
 import { useFlashSale } from "@/app/lib/useFlashSale";
 import { useRegistrationOpen } from "@/app/lib/useRegistrationOpen";
@@ -51,7 +52,7 @@ function generateCouponCode() {
 
 export default function CrewRegisterForm({ event }: { event: FestEvent }) {
   const flashSale = useFlashSale(event.slug);
-  const registrationOpen = useRegistrationOpen();
+  const registrationOpen = useRegistrationOpen(HIPHOP_CREW_CLOSES_AT);
   const soloVisible =
     SOLO_3TS_ENABLED || process.env.NODE_ENV !== "production";
 
