@@ -184,8 +184,13 @@ export default function Round2Form() {
     ) &&
     techRider;
 
-  const total =
-    participants.length * PRICE_PER_HEAD + roadies.length * ROADIE_PRICE;
+  const hasAmountOverride =
+    registration?.round2_amount_override !== null &&
+    registration?.round2_amount_override !== undefined;
+
+  const total = hasAmountOverride
+    ? registration.round2_amount_override
+    : participants.length * PRICE_PER_HEAD + roadies.length * ROADIE_PRICE;
 
   async function uploadFile(file: File, path: string) {
     const { error: uploadError } = await supabase.storage
@@ -519,13 +524,21 @@ export default function Round2Form() {
               <p className="text-text-primary text-3xl font-semibold">
                 ₹{total}
               </p>
-              <p className="text-text-muted text-sm mt-1">
-                {participants.length} members × ₹{PRICE_PER_HEAD}
-              </p>
-              {roadies.length > 0 && (
-                <p className="text-text-muted text-sm">
-                  {roadies.length} roadies × ₹{ROADIE_PRICE}
+              {hasAmountOverride ? (
+                <p className="text-text-muted text-sm mt-1">
+                  Special rate applied
                 </p>
+              ) : (
+                <>
+                  <p className="text-text-muted text-sm mt-1">
+                    {participants.length} members × ₹{PRICE_PER_HEAD}
+                  </p>
+                  {roadies.length > 0 && (
+                    <p className="text-text-muted text-sm">
+                      {roadies.length} roadies × ₹{ROADIE_PRICE}
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
