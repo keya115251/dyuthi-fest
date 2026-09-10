@@ -76,43 +76,55 @@ export default function Round2Form() {
     setLookingUp(true);
     setLookupError("");
 
-    const normalizedBandName = bandName.trim().toLowerCase();
     const normalizedPhone = pocPhone.replace(/\D/g, "");
 
     const { data, error: lookupErr } = await supabase
       .from("band_registrations")
       .select("*")
-      .ilike("band_name", bandName.trim())
-      .ilike("poc_phone", `%${normalizedPhone}%`)
-      .maybeSingle();
+      .ilike("poc_phone", `%${normalizedPhone}%`);
 
     setLookingUp(false);
 
-    if (lookupErr || !data) {
+    if (lookupErr || !data || data.length === 0) {
       setLookupError(
         "No matching Round 1 registration found. Check your band name and POC phone number."
       );
       return;
     }
 
-    if (data.status !== "selected") {
+    let match = data[0];
+    if (data.length > 1) {
+      const exact = data.find(
+        (d: any) =>
+          d.band_name.trim().toLowerCase() === bandName.trim().toLowerCase()
+      );
+      if (exact) {
+        match = exact;
+      } else {
+        setLookupError(
+          `Multiple bands found with this phone number (${data
+            .map((d: any) => d.band_name)
+            .join(", ")}). Please contact us directly to complete Round 2.`
+        );
+        return;
+      }
+    }
+
+    if (match.status !== "selected") {
       setLookupError(
         "This band hasn't been marked as selected for Round 2 yet. Please check our Instagram for results."
       );
       return;
     }
 
-    if (data.round2_completed_at) {
+    if (match.round2_completed_at) {
       setLookupError("Round 2 has already been submitted for this band.");
       return;
     }
 
-    setRegistration(data);
-    // pre-fill member count worth of participant slots
-    const count = data.participant_count || 1;
-    setParticipants(
-      Array.from({ length: count }, () => emptyParticipant())
-    );
+    setRegistration(match);
+    const count = match.participant_count || 1;
+    setParticipants(Array.from({ length: count }, () => emptyParticipant()));
     setStage("members");
   }
 
