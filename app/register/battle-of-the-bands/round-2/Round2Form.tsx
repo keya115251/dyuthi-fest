@@ -76,11 +76,14 @@ export default function Round2Form() {
     setLookingUp(true);
     setLookupError("");
 
+    const normalizedBandName = bandName.trim().toLowerCase();
+    const normalizedPhone = pocPhone.replace(/\D/g, "");
+
     const { data, error: lookupErr } = await supabase
       .from("band_registrations")
       .select("*")
       .ilike("band_name", bandName.trim())
-      .eq("poc_phone", pocPhone.trim())
+      .ilike("poc_phone", `%${normalizedPhone}%`)
       .maybeSingle();
 
     setLookingUp(false);
