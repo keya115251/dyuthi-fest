@@ -30,7 +30,7 @@ export const SOLO_3TS_ENABLED = true;
 // Hard deadlines for competition entries. Each competition closes on its own
 // schedule. Does NOT apply to 3T's Solo or Round 2 (which is gated
 // separately by band selection status).
-export const AANGIKAM_CLOSES_AT = "2026-09-09T18:29:59.000Z"; 
+export const AANGIKAM_CLOSES_AT = "2026-09-12T18:29:00.000Z"; 
 export const HIPHOP_CREW_CLOSES_AT = "2026-09-11T07:30:00.000Z"; // 1:00 PM IST, Sept 11 2026
 export const BAND_ROUND1_CLOSES_AT = "2026-09-09T18:29:59.000Z"; // 11:59:59 PM IST, Sept 9 2026 - unchanged
 export const ROUND2_CLOSES_AT = "2026-09-12T18:29:00.000Z"; // 11:59 PM IST, Sept 12 2026
