@@ -326,10 +326,7 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
     );
   }
 
-  // Crew registration has a hard deadline (REGISTRATION_CLOSES_AT); Solo does
-  // not. Only gate the crew flow - keep the Solo option and its full flow
-  // reachable via the escape hatch below.
-  if (!registrationOpen && format === "crew") {
+  if (!registrationOpen) {
     return (
       <main className="min-h-screen bg-bg-base flex items-center justify-center px-6">
         <div className="text-center max-w-md">
@@ -337,18 +334,9 @@ export default function CrewRegisterForm({ event }: { event: FestEvent }) {
             Registration Closed
           </h1>
           <p className="text-text-muted">
-            Crew registration for {event.name} closed on September 9, 2026.
-            The deadline has passed and crew entries are no longer being
-            accepted.
+            Registration for {event.name} closed on September 11, 2026. The
+            deadline has passed and entries are no longer being accepted.
           </p>
-          {soloVisible && !soloFull && (
-            <button
-              onClick={() => selectFormat("solo")}
-              className="cursor-target block mx-auto mt-6 text-thermal-accent hover:underline"
-            >
-              Register as a solo entry instead →
-            </button>
-          )}
           <TransitionLink
             href={`/events/${event.slug}`}
             className="cursor-target inline-block mt-4 text-thermal-accent hover:underline"
