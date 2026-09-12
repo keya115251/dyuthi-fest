@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/app/lib/supabase/admin";
 import { SHOW_OCR_VERIFICATION } from "@/app/lib/config";
 import MarkSelectedButton from "./MarkSelectedButton";
 import LogoutButton from "./LogoutButton";
+import ExportXlsxButton from "@/app/components/ExportXlsxButton";
 
 const STORAGE_BUCKET = "registration-uploads";
 const SIGNED_URL_EXPIRY_SECONDS = 60 * 60;
@@ -253,6 +254,33 @@ async function renderLaasyaDashboard(heading: string, tabs?: ReactNode) {
   }
   const urls = await buildSignedUrlMap(paths);
 
+  const exportRows = registrations.map((r) => ({
+    Type: r.performance_type,
+    "Dance Form": r.dance_form,
+    "Age Group": r.age_group,
+    City: r.city,
+    State: r.state,
+    Email: r.email,
+    Participants: r.participant_count,
+    "Amount Paid": r.amount_paid,
+    "Payment Pending": formatBool(r.payment_pending),
+    ...(SHOW_OCR_VERIFICATION
+      ? {
+          "Needs Review": formatBool(r.needs_review),
+          "Payment Match": formatMatchText(r.payment_amount_matches),
+        }
+      : {}),
+    "UTR Reference": r.utr_reference ?? "—",
+    "Payee Name": r.payee_name ?? "—",
+    "Payee Phone": r.payee_phone ?? "—",
+    "Coupon Code": r.coupon_code ?? "—",
+    "Participants (Names)": summarizeParticipants(
+      r.dance_participants ?? [],
+      "is_head",
+      "Head"
+    ),
+  }));
+
   return (
     <DashboardShell
       heading={heading}
@@ -336,6 +364,10 @@ async function renderLaasyaDashboard(heading: string, tabs?: ReactNode) {
           ))}
         </div>
       </div>
+
+      <div className="flex justify-end mt-4">
+        <ExportXlsxButton data={exportRows} filename="aangikam-registrations.xlsx" />
+      </div>
     </DashboardShell>
   );
 }
@@ -354,6 +386,34 @@ async function renderUdcDashboard(heading: string, tabs?: ReactNode) {
     for (const m of r.crew_members ?? []) paths.push(m.id_proof_url);
   }
   const urls = await buildSignedUrlMap(paths);
+
+  const exportRows = registrations.map((r) => ({
+    "Crew Name": r.crew_name,
+    Format: r.format === "solo" ? "Solo" : "Crew",
+    Category: r.category,
+    Institution: r.institution ?? "—",
+    City: r.city,
+    State: r.state,
+    Members: r.member_count,
+    "Performance Duration": r.performance_duration ?? "—",
+    "Amount Paid": r.amount_paid,
+    "Payment Pending": formatBool(r.payment_pending),
+    ...(SHOW_OCR_VERIFICATION
+      ? {
+          "Needs Review": formatBool(r.needs_review),
+          "Payment Match": formatMatchText(r.payment_amount_matches),
+        }
+      : {}),
+    "UTR Reference": r.utr_reference ?? "—",
+    "Payee Name": r.payee_name ?? "—",
+    "Payee Phone": r.payee_phone ?? "—",
+    "Coupon Code": r.coupon_code ?? "—",
+    "Members (Names)": summarizeParticipants(
+      r.crew_members ?? [],
+      "is_leader",
+      "Leader"
+    ),
+  }));
 
   return (
     <DashboardShell
@@ -451,6 +511,10 @@ async function renderUdcDashboard(heading: string, tabs?: ReactNode) {
           ))}
         </div>
       </div>
+
+      <div className="flex justify-end mt-4">
+        <ExportXlsxButton data={exportRows} filename="3ts-registrations.xlsx" />
+      </div>
     </DashboardShell>
   );
 }
@@ -469,6 +533,49 @@ async function renderBandDashboard(heading: string, tabs?: ReactNode) {
     for (const p of r.band_participants ?? []) paths.push(p.id_proof_url);
   }
   const urls = await buildSignedUrlMap(paths);
+
+  const exportRows = registrations.map((r) => ({
+    "Band Name": r.band_name,
+    Members: r.participant_count,
+    City: r.city,
+    State: r.state,
+    "Video Link": r.video_link ?? "—",
+    "POC Name": r.poc_name,
+    "POC Phone": r.poc_phone,
+    "POC Email": r.poc_email,
+    "POC Institution": r.poc_institution ?? "—",
+    Status: r.status,
+    "Round 1 Amount Paid": r.amount_paid,
+    "Round 1 Payment Pending": formatBool(r.payment_pending),
+    "Round 1 UTR Reference": r.utr_reference ?? "—",
+    "Round 1 Payee Name": r.payee_name ?? "—",
+    "Round 1 Payee Phone": r.payee_phone ?? "—",
+    ...(SHOW_OCR_VERIFICATION
+      ? {
+          "Round 1 Needs Review": formatBool(r.needs_review),
+          "Round 1 Payment Match": formatMatchText(r.payment_amount_matches),
+        }
+      : {}),
+    "Round 2 Amount Paid": r.round2_amount_paid ?? "—",
+    "Round 2 Completed At": formatDate(r.round2_completed_at),
+    "Round 2 UTR Reference": r.round2_utr_reference ?? "—",
+    "Round 2 Payee Name": r.round2_payee_name ?? "—",
+    "Round 2 Payee Phone": r.round2_payee_phone ?? "—",
+    ...(SHOW_OCR_VERIFICATION
+      ? {
+          "Round 2 Needs Review": formatBool(r.round2_needs_review),
+          "Round 2 Payment Match": formatMatchText(
+            r.round2_payment_amount_matches
+          ),
+        }
+      : {}),
+    "Coupon Code": r.coupon_code ?? "—",
+    "Participants (Names)": summarizeParticipants(
+      r.band_participants ?? [],
+      "is_primary_contact",
+      "POC"
+    ),
+  }));
 
   return (
     <DashboardShell
@@ -667,6 +774,13 @@ async function renderBandDashboard(heading: string, tabs?: ReactNode) {
           })}
         </div>
       </div>
+
+      <div className="flex justify-end mt-4">
+        <ExportXlsxButton
+          data={exportRows}
+          filename="battle-of-the-bands-registrations.xlsx"
+        />
+      </div>
     </DashboardShell>
   );
 }
@@ -684,6 +798,19 @@ async function renderAudienceDashboard(tabs?: ReactNode) {
   const urls = await buildSignedUrlMap(
     registrations.map((r) => r.payment_screenshot_url)
   );
+
+  const exportRows = registrations.map((r) => ({
+    Name: r.name,
+    Age: r.age ?? "—",
+    Institution: r.institution,
+    Phone: r.phone,
+    Email: r.email,
+    "Amount Paid": r.amount_paid,
+    "Payment Pending": formatBool(r.payment_pending),
+    "Payee Name": r.payee_name ?? "—",
+    "Payee Phone": r.payee_phone ?? "—",
+    "UTR Reference": r.utr_reference ?? "—",
+  }));
 
   return (
     <DashboardShell
@@ -736,6 +863,10 @@ async function renderAudienceDashboard(tabs?: ReactNode) {
           ))}
         </div>
       </div>
+
+      <div className="flex justify-end mt-4">
+        <ExportXlsxButton data={exportRows} filename="audience-registrations.xlsx" />
+      </div>
     </DashboardShell>
   );
 }
@@ -757,6 +888,22 @@ async function renderWorkshopDashboard(tabs?: ReactNode) {
     paths.push(r.id_proof_url);
   }
   const urls = await buildSignedUrlMap(paths);
+
+  const exportRows = registrations.map((r) => ({
+    name: r.name,
+    phone: r.phone,
+    email: r.email,
+    institution: r.institution,
+    tier: r.tier ?? "—",
+    amount_paid: r.amount_paid,
+    payment_pending: formatBool(r.payment_pending),
+    payee_name: r.payee_name ?? "—",
+    payee_phone: r.payee_phone ?? "—",
+    utr_reference: r.utr_reference ?? "—",
+    coupon_code_used: r.coupon_code_used ?? "—",
+    id_proof_url: r.id_proof_url ?? "—",
+    created_at: r.created_at,
+  }));
 
   return (
     <DashboardShell
@@ -820,6 +967,13 @@ async function renderWorkshopDashboard(tabs?: ReactNode) {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="flex justify-end mt-4">
+        <ExportXlsxButton
+          data={exportRows}
+          filename="hip-hop-workshop-registrations.xlsx"
+        />
       </div>
     </DashboardShell>
   );
@@ -1001,6 +1155,26 @@ function MatchBadge({ matches }: { matches: boolean | null | undefined }) {
       Mismatch
     </span>
   );
+}
+
+function formatMatchText(v: boolean | null | undefined) {
+  if (v === null || v === undefined) return "Not checked";
+  return v ? "Match" : "Mismatch";
+}
+
+function summarizeParticipants(
+  rows: GenericMember[],
+  leaderKey: "is_head" | "is_leader" | "is_primary_contact",
+  leaderLabel: string
+) {
+  if (!rows.length) return "—";
+  const names = rows.map((m) => {
+    let label = m.name;
+    if (m[leaderKey]) label += ` (${leaderLabel})`;
+    if (m.is_roadie) label += " (Roadie)";
+    return label;
+  });
+  return `${rows.length} ${rows.length === 1 ? "participant" : "participants"}: ${names.join(", ")}`;
 }
 
 function FileLink({ url }: { url: string | null | undefined }) {
