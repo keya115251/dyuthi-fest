@@ -162,8 +162,10 @@ export default function Round2Form() {
     );
   }
 
+  const effectiveMaxRoadies = registration?.max_roadies_override ?? MAX_ROADIES;
+
   function addRoadie() {
-    if (roadies.length >= MAX_ROADIES) return;
+    if (roadies.length >= effectiveMaxRoadies) return;
     setRoadies((prev) => [...prev, emptyParticipant()]);
     setRoadieOpenIndex(roadies.length);
   }
@@ -468,7 +470,7 @@ export default function Round2Form() {
                 ))}
               </div>
 
-              {roadies.length < MAX_ROADIES && (
+              {roadies.length < effectiveMaxRoadies && (
                 <button
                   onClick={addRoadie}
                   className="mt-4 w-full rounded-xl border border-dashed border-white/20 py-3 text-text-muted hover:border-thermal-accent hover:text-thermal-accent transition-colors"
@@ -479,7 +481,7 @@ export default function Round2Form() {
 
               {roadies.length > 0 && (
                 <p className="text-text-muted text-sm mt-4">
-                  {roadies.length} / {MAX_ROADIES} roadies
+                  {roadies.length} / {effectiveMaxRoadies} roadies
                 </p>
               )}
             </div>
