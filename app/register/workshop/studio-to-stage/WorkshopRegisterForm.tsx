@@ -1,33 +1,13 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import PhoneInput from "@/app/components/PhoneInput";
 import Waves from "@/app/components/Waves";
 import { PAYMENT_REQUIRED, TEAM_NOTIFICATION_EMAIL } from "@/app/lib/config";
 
-// Slug the workshop_slots / workshop_registrations tables key off of. Note this
-// differs from the route segment (hip-hop-rajaram).
-const WORKSHOP_SLUG = "hip-hop-workshop-rajaram";
-const TOTAL_ONLINE_SLOTS = 30;
-const TIER_1_LIMIT = 15;
-const TIER_1_PRICE = 599;
-const TIER_2_PRICE = 699;
-const ON_SPOT_PRICE = 799;
-
-// Parsed from the claim_workshop_slot RPC row, whose columns are
-// out_slot_number / out_tier / out_price.
-type ClaimedSlot = { tier: string | number; price: number };
-
-function readSlot(data: unknown): ClaimedSlot | null {
-  const row = Array.isArray(data) ? data[0] : data;
-  if (!row || typeof row !== "object") return null;
-  const r = row as Record<string, unknown>;
-  const price = Number(r.out_price);
-  if (Number.isNaN(price)) return null;
-  const tier = (r.out_tier ?? "") as string | number;
-  return { tier, price };
-}
+const WORKSHOP_SLUG = "studio-to-stage";
+const FLAT_PRICE = 200;
 
 // Shape returned by the redeem_coupon RPC: { valid, discount_percent }.
 function readRedemption(data: unknown): {
@@ -54,11 +34,6 @@ export default function WorkshopRegisterForm() {
   const [institution, setInstitution] = useState("");
   const [idProof, setIdProof] = useState<File | null>(null);
 
-  // null = still loading the count
-  const [slotsClaimed, setSlotsClaimed] = useState<number | null>(null);
-  const [regId, setRegId] = useState<string | null>(null);
-  const [claimedSlot, setClaimedSlot] = useState<ClaimedSlot | null>(null);
-
   const [couponInput, setCouponInput] = useState("");
   const [couponChecking, setCouponChecking] = useState(false);
   const [couponDiscountPercent, setCouponDiscountPercent] = useState<
@@ -75,15 +50,6 @@ export default function WorkshopRegisterForm() {
   const paymentScreenshotId = useId();
   const idProofId = useId();
 
-  useEffect(() => {
-    supabase
-      .from("workshop_slots")
-      .select("*", { count: "exact", head: true })
-      .eq("workshop_slug", WORKSHOP_SLUG)
-      .eq("claimed", true)
-      .then(({ count }) => setSlotsClaimed(count ?? 0));
-  }, []);
-
   const detailsValid =
     name.trim() !== "" &&
     phone.length === 10 &&
@@ -91,17 +57,9 @@ export default function WorkshopRegisterForm() {
     institution.trim() !== "" &&
     idProof !== null;
 
-  // Tier the next registration lands in, estimated from the live count so we
-  // can show a price before they start. The authoritative price comes back
-  // from the RPC when the slot is actually claimed.
-  const estimatedPrice =
-    slotsClaimed !== null && slotsClaimed < TIER_1_LIMIT
-      ? TIER_1_PRICE
-      : TIER_2_PRICE;
-
   const effectiveDiscountPercent = couponDiscountPercent ?? 0;
-  const discountedEstimatedPrice = Math.round(
-    estimatedPrice * (1 - effectiveDiscountPercent / 100)
+  const discountedPrice = Math.round(
+    FLAT_PRICE * (1 - effectiveDiscountPercent / 100)
   );
 
   // Non-consuming lookup so we can preview a discount before the user
@@ -136,52 +94,12 @@ export default function WorkshopRegisterForm() {
     }
   }
 
-  async function handleClaimAndProceed() {
-    // Slot already reserved (e.g. user went Back from payment) - don't claim
-    // a second one.
-    if (claimedSlot) {
-      setStep("payment");
-      return;
-    }
-
-    setSubmitting(true);
-    setError("");
-
-    try {
-      const newRegId = crypto.randomUUID();
-      const { data, error: rpcError } = await supabase.rpc(
-        "claim_workshop_slot",
-        { p_workshop_slug: WORKSHOP_SLUG, reg_id: newRegId }
-      );
-
-      if (rpcError) throw rpcError;
-
-      const slot = readSlot(data);
-      if (!slot) {
-        setSlotsClaimed(TOTAL_ONLINE_SLOTS);
-        setError(
-          "Sorry, online spots have just been filled - please register on the spot for ₹799 at the venue."
-        );
-        return;
-      }
-
-      setRegId(newRegId);
-      setClaimedSlot(slot);
-      setStep("payment");
-    } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   async function handleSubmit() {
     if (PAYMENT_REQUIRED && !paymentScreenshot) {
       setError("Please upload your payment screenshot.");
       return;
     }
-    if (!regId || !claimedSlot || !idProof) {
+    if (!idProof) {
       setError("Something went wrong. Please start again.");
       return;
     }
@@ -192,7 +110,7 @@ export default function WorkshopRegisterForm() {
 
     try {
       const enteredCode = couponInput.trim();
-      let amountPaid = claimedSlot.price;
+      let amountPaid = FLAT_PRICE;
       let couponCodeUsed: string | null = null;
 
       // Redeem the coupon exactly once, here, right before the insert - every
@@ -209,9 +127,7 @@ export default function WorkshopRegisterForm() {
 
         const { valid, discountPercent } = readRedemption(redeemData);
         if (valid) {
-          amountPaid = Math.round(
-            claimedSlot.price * (1 - discountPercent / 100)
-          );
+          amountPaid = Math.round(FLAT_PRICE * (1 - discountPercent / 100));
           couponCodeUsed = enteredCode;
         } else {
           setCouponFallbackNote(
@@ -223,13 +139,12 @@ export default function WorkshopRegisterForm() {
       const { data: registration, error: regError } = await supabase
         .from("workshop_registrations")
         .insert({
-          id: regId,
           workshop_slug: WORKSHOP_SLUG,
           name,
           phone,
           email,
           institution,
-          tier: claimedSlot.tier,
+          tier: null,
           amount_paid: amountPaid,
           coupon_code_used: couponCodeUsed,
           payment_pending: !paymentScreenshot,
@@ -277,8 +192,8 @@ export default function WorkshopRegisterForm() {
             registrantName: name,
             registrantEmail: email,
             registrantPhone: phone,
-            eventName: "Hip-Hop Dance Workshop with Rajaram",
-            eventDate: "September 19, 2026",
+            eventName: "Studio to Stage Workshop with Chirag Samtani",
+            eventDate: "September 18, 2026",
           }),
         });
       } catch (emailErr) {
@@ -294,32 +209,6 @@ export default function WorkshopRegisterForm() {
     }
   }
 
-  // ----- loading / full screens (no form) -----
-
-  if (slotsClaimed === null) {
-    return (
-      <main className="min-h-screen bg-bg-base flex items-center justify-center px-6">
-        <p className="text-text-muted">Checking availability…</p>
-      </main>
-    );
-  }
-
-  if (step !== "done" && slotsClaimed >= TOTAL_ONLINE_SLOTS) {
-    return (
-      <main className="min-h-screen bg-bg-base flex items-center justify-center px-6">
-        <div className="text-center max-w-md">
-          <h1 className="font-heading text-4xl text-text-primary mb-4">
-            Online Registration Full
-          </h1>
-          <p className="text-text-muted">
-            Online registration is full. You can still register on the spot for
-            ₹{ON_SPOT_PRICE} at the venue on September 19.
-          </p>
-        </div>
-      </main>
-    );
-  }
-
   if (step === "done") {
     return (
       <main className="min-h-screen bg-bg-base flex items-center justify-center px-6">
@@ -328,7 +217,7 @@ export default function WorkshopRegisterForm() {
             You&apos;re registered!
           </h1>
           <p className="text-text-muted">
-            Hip-Hop Dance Workshop with Rajaram — {name}
+            Studio to Stage Workshop with Chirag Samtani — {name}
           </p>
           {couponFallbackNote && (
             <p className="text-thermal-accent text-sm mt-4 max-w-sm mx-auto">
@@ -360,30 +249,26 @@ export default function WorkshopRegisterForm() {
 
       <div className="relative z-10 max-w-2xl mx-auto">
         <h1 className="font-heading text-4xl text-text-primary mb-2">
-          Register — Hip-Hop Dance Workshop
+          Register — Studio to Stage Workshop
         </h1>
-        <p className="text-text-muted mb-1">Rajaram · BFAB Dance Crew</p>
-        <p className="text-text-muted mb-10">September 19, 2026 · 3 hours</p>
+        <p className="text-text-muted mb-1">Chirag Samtani</p>
+        <p className="text-text-muted mb-10">
+          September 18, 2026 · 1 – 4 PM
+        </p>
 
         {step === "details" && (
           <>
             <div className="rounded-2xl border border-white/10 bg-bg-surface p-8 mb-6">
               <p className="text-text-muted text-sm uppercase tracking-wide mb-1">
-                Your Price
+                Price
               </p>
               <p className="text-text-primary text-3xl font-semibold">
-                ₹{discountedEstimatedPrice}
+                ₹{discountedPrice}
                 {couponDiscountPercent !== null && (
                   <span className="text-text-muted text-lg font-normal line-through ml-2">
-                    ₹{estimatedPrice}
+                    ₹{FLAT_PRICE}
                   </span>
                 )}
-              </p>
-              <p className="text-text-muted text-sm mt-1">
-                {slotsClaimed} / {TOTAL_ONLINE_SLOTS} online spots taken ·{" "}
-                {slotsClaimed < TIER_1_LIMIT
-                  ? `first ${TIER_1_LIMIT} pay ₹${TIER_1_PRICE}, next ${TIER_1_LIMIT} pay ₹${TIER_2_PRICE}`
-                  : `₹${TIER_2_PRICE} tier`}
               </p>
             </div>
 
@@ -459,16 +344,16 @@ export default function WorkshopRegisterForm() {
             )}
 
             <button
-              onClick={handleClaimAndProceed}
-              disabled={!detailsValid || submitting}
+              onClick={() => setStep("payment")}
+              disabled={!detailsValid}
               className="w-full px-8 py-3 rounded-full bg-thermal-accent text-bg-base font-semibold hover:opacity-90 transition-opacity disabled:bg-thermal-accent/60 disabled:text-bg-base/70 disabled:cursor-not-allowed"
             >
-              {submitting ? "Reserving your spot…" : "Continue to Payment"}
+              Continue to Payment
             </button>
           </>
         )}
 
-        {step === "payment" && claimedSlot && (
+        {step === "payment" && (
           <>
             {PAYMENT_REQUIRED ? (
               <>
@@ -477,24 +362,18 @@ export default function WorkshopRegisterForm() {
                     Total Amount
                   </p>
                   <p className="text-text-primary text-3xl font-semibold">
-                    ₹
-                    {Math.round(
-                      claimedSlot.price * (1 - effectiveDiscountPercent / 100)
-                    )}
+                    ₹{discountedPrice}
                     {couponDiscountPercent !== null && (
                       <span className="text-text-muted text-lg font-normal line-through ml-2">
-                        ₹{claimedSlot.price}
+                        ₹{FLAT_PRICE}
                       </span>
                     )}
                   </p>
-                  <p className="text-text-muted text-sm mt-1">
-                    Tier {String(claimedSlot.tier)} price
-                    {couponDiscountPercent !== null && (
-                      <span className="text-thermal-accent ml-2">
-                        {couponDiscountPercent}% coupon discount applied
-                      </span>
-                    )}
-                  </p>
+                  {couponDiscountPercent !== null && (
+                    <p className="text-thermal-accent text-sm mt-1">
+                      {couponDiscountPercent}% coupon discount applied
+                    </p>
+                  )}
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-bg-surface p-4 mb-6 flex flex-col items-center">

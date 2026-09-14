@@ -11,9 +11,11 @@ import TransitionLink from "@/app/components/TransitionLink";
 const workshops = [
   {
     id: "workshop-1",
-    title: "Workshop / Celebrity Session",
-    host: "Chaitanya Geethi x Vaadya",
+    title: "Studio to Stage",
+    host: "Chirag Samtani",
     day: "Day 1",
+    details: "September 18 · 1 – 4 PM",
+    href: "/register/workshop/studio-to-stage",
     image: "/workshops/geethi-vaadya.jpg",
   },
   {

@@ -19,7 +19,13 @@ const calendar = [
     slots: [
       { time: "Morning", event: "Aangikam", host: "Chaitanya Laasya" },
       { time: "Evening", event: "3T's (Time to Tap)", host: "United Dance Crew" },
-      { time: "Parallel", event: "Workshop / Celebrity Session", host: "Chaitanya Geethi x Vaadya", tba: true },
+      {
+        time: "Parallel",
+        event: "Studio to Stage",
+        host: "Chirag Samtani",
+        detail: "September 18 · 1 – 4 PM",
+        href: "/register/workshop/studio-to-stage",
+      },
     ],
   },
   {

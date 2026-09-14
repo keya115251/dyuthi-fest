@@ -12,6 +12,7 @@ import ExportXlsxButton from "@/app/components/ExportXlsxButton";
 const STORAGE_BUCKET = "registration-uploads";
 const SIGNED_URL_EXPIRY_SECONDS = 60 * 60;
 const WORKSHOP_SLUG = "hip-hop-workshop-rajaram";
+const STUDIO_TO_STAGE_SLUG = "studio-to-stage";
 
 // ---------- shared types ----------
 
@@ -170,7 +171,13 @@ type WorkshopRegistration = {
 
 // ---------- page ----------
 
-type AdminView = "dance" | "crew" | "band" | "audience" | "workshop";
+type AdminView =
+  | "dance"
+  | "crew"
+  | "band"
+  | "audience"
+  | "workshop"
+  | "studio-to-stage";
 
 const VIEW_TABS: { id: AdminView; label: string }[] = [
   { id: "dance", label: "Aangikam (Dance)" },
@@ -178,6 +185,7 @@ const VIEW_TABS: { id: AdminView; label: string }[] = [
   { id: "band", label: "Veni Vidi Vici (Band)" },
   { id: "audience", label: "Audience" },
   { id: "workshop", label: "Hip-Hop Workshop" },
+  { id: "studio-to-stage", label: "Studio to Stage" },
 ];
 
 export default async function AdminDashboard({
@@ -203,7 +211,8 @@ export default async function AdminDashboard({
     view === "crew" ||
     view === "band" ||
     view === "audience" ||
-    view === "workshop"
+    view === "workshop" ||
+    view === "studio-to-stage"
       ? view
       : "dance";
 
@@ -214,6 +223,8 @@ export default async function AdminDashboard({
     return renderBandDashboard(clubs["geethi-vaadya"].eventName, tabs);
   if (selected === "audience") return renderAudienceDashboard(tabs);
   if (selected === "workshop") return renderWorkshopDashboard(tabs);
+  if (selected === "studio-to-stage")
+    return renderStudioToStageDashboard(tabs);
   return renderLaasyaDashboard(clubs.laasya.eventName, tabs);
 }
 
@@ -979,6 +990,112 @@ async function renderWorkshopDashboard(tabs?: ReactNode) {
   );
 }
 
+// ---------- studio to stage workshop dashboard (main admin only) ----------
+
+async function renderStudioToStageDashboard(tabs?: ReactNode) {
+  const { data, error } = await supabaseAdmin
+    .from("workshop_registrations")
+    .select("*")
+    .eq("workshop_slug", STUDIO_TO_STAGE_SLUG)
+    .order("created_at", { ascending: false });
+
+  const registrations = (data ?? []) as WorkshopRegistration[];
+
+  const paths: (string | null)[] = [];
+  for (const r of registrations) {
+    paths.push(r.payment_screenshot_url);
+    paths.push(r.id_proof_url);
+  }
+  const urls = await buildSignedUrlMap(paths);
+
+  const exportRows = registrations.map((r) => ({
+    name: r.name,
+    phone: r.phone,
+    email: r.email,
+    institution: r.institution,
+    amount_paid: r.amount_paid,
+    payment_pending: formatBool(r.payment_pending),
+    payee_name: r.payee_name ?? "—",
+    payee_phone: r.payee_phone ?? "—",
+    utr_reference: r.utr_reference ?? "—",
+    coupon_code_used: r.coupon_code_used ?? "—",
+    id_proof_url: r.id_proof_url ?? "—",
+    created_at: r.created_at,
+  }));
+
+  return (
+    <DashboardShell
+      heading="Studio to Stage Workshop (Chirag Samtani)"
+      count={registrations.length}
+      error={!!error}
+      tabs={tabs}
+    >
+      <div className="rounded-2xl border border-white/10 overflow-x-auto">
+        <div className="min-w-350 divide-y divide-white/10">
+          <div
+            className="grid gap-2 bg-bg-surface text-text-muted text-xs uppercase tracking-wide px-4 py-3"
+            style={{ gridTemplateColumns: GRID_STUDIO_TO_STAGE }}
+          >
+            {STUDIO_TO_STAGE_COLUMNS.map((c) => (
+              <span key={c}>{c}</span>
+            ))}
+          </div>
+
+          {registrations.map((r) => (
+            <div
+              key={r.id}
+              className="grid gap-2 items-center px-4 py-3 text-text-primary text-sm"
+              style={{ gridTemplateColumns: GRID_STUDIO_TO_STAGE }}
+            >
+              <span className="max-w-40 wrap-break-word" title={r.name}>
+                {r.name}
+              </span>
+              <span>{r.phone}</span>
+              <span className="max-w-40 wrap-break-word" title={r.email}>
+                {r.email}
+              </span>
+              <span className="max-w-40 wrap-break-word" title={r.institution}>
+                {r.institution}
+              </span>
+              <span>₹{r.amount_paid}</span>
+              <span>{formatBool(r.payment_pending)}</span>
+              <span
+                className="max-w-40 wrap-break-word"
+                title={r.payee_name ?? undefined}
+              >
+                {r.payee_name ?? "—"}
+              </span>
+              <span>{r.payee_phone ?? "—"}</span>
+              <span
+                className="max-w-40 wrap-break-word"
+                title={r.utr_reference ?? undefined}
+              >
+                {r.utr_reference ?? "—"}
+              </span>
+              <span className="font-mono text-xs">
+                {r.coupon_code_used ?? "—"}
+              </span>
+              <span>
+                <FileLink url={urls.get(r.payment_screenshot_url ?? "")} />
+              </span>
+              <span>
+                <FileLink url={urls.get(r.id_proof_url ?? "")} />
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end mt-4">
+        <ExportXlsxButton
+          data={exportRows}
+          filename="studio-to-stage-registrations.xlsx"
+        />
+      </div>
+    </DashboardShell>
+  );
+}
+
 // ---------- layout helpers ----------
 
 function DashboardShell({
@@ -1224,6 +1341,7 @@ const GRID_UDC = `repeat(${SHOW_OCR_VERIFICATION ? 17 : 15}, minmax(100px, 1fr))
 const GRID_12 = `repeat(${SHOW_OCR_VERIFICATION ? 14 : 13}, minmax(110px, 1fr)) 32px`;
 const GRID_11 = `repeat(11, minmax(100px, 1fr))`;
 const GRID_WORKSHOP = `repeat(13, minmax(100px, 1fr))`;
+const GRID_STUDIO_TO_STAGE = `repeat(12, minmax(100px, 1fr))`;
 
 const OCR_SUMMARY_COLUMNS = SHOW_OCR_VERIFICATION ? ["Review", "Match"] : [];
 const OCR_BAND_SUMMARY_COLUMNS = SHOW_OCR_VERIFICATION ? ["Review"] : [];
@@ -1287,6 +1405,21 @@ const WORKSHOP_COLUMNS = [
   "Email",
   "Institution",
   "Tier",
+  "Amount",
+  "Pending",
+  "Payee",
+  "Payee Phone",
+  "UTR",
+  "Coupon",
+  "Screenshot",
+  "ID Proof",
+];
+
+const STUDIO_TO_STAGE_COLUMNS = [
+  "Name",
+  "Phone",
+  "Email",
+  "Institution",
   "Amount",
   "Pending",
   "Payee",
