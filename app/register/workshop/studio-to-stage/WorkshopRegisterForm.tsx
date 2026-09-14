@@ -251,7 +251,7 @@ export default function WorkshopRegisterForm() {
         <h1 className="font-heading text-4xl text-text-primary mb-2">
           Register — Studio to Stage Workshop
         </h1>
-        <p className="text-text-muted mb-1">Chirag Samtani</p>
+        <p className="text-text-muted mb-1">Hosted by Chirag Samtani</p>
         <p className="text-text-muted mb-10">
           September 18, 2026 · 1 – 4 PM
         </p>

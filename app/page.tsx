@@ -22,7 +22,7 @@ const calendar = [
       {
         time: "Parallel",
         event: "Studio to Stage",
-        host: "Chirag Samtani",
+        host: "Hosted by Chirag Samtani",
         detail: "September 18 · 1 – 4 PM",
         href: "/register/workshop/studio-to-stage",
       },

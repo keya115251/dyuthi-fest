@@ -12,7 +12,7 @@ const workshops = [
   {
     id: "workshop-1",
     title: "Studio to Stage",
-    host: "Chirag Samtani",
+    host: "Hosted by Chirag Samtani",
     day: "Day 1",
     details: "September 18 · 1 – 4 PM",
     href: "/register/workshop/studio-to-stage",
