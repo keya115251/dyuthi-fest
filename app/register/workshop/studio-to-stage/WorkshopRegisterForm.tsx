@@ -9,22 +9,6 @@ import { PAYMENT_REQUIRED, TEAM_NOTIFICATION_EMAIL } from "@/app/lib/config";
 const WORKSHOP_SLUG = "studio-to-stage";
 const FLAT_PRICE = 200;
 
-// Shape returned by the redeem_coupon RPC: { valid, discount_percent }.
-function readRedemption(data: unknown): {
-  valid: boolean;
-  discountPercent: number;
-} {
-  const row = Array.isArray(data) ? data[0] : data;
-  if (!row || typeof row !== "object") {
-    return { valid: false, discountPercent: 0 };
-  }
-  const r = row as Record<string, unknown>;
-  return {
-    valid: r.valid === true,
-    discountPercent: Number(r.discount_percent ?? 0) || 0,
-  };
-}
-
 export default function WorkshopRegisterForm() {
   const [step, setStep] = useState<"details" | "payment" | "done">("details");
 
@@ -40,7 +24,6 @@ export default function WorkshopRegisterForm() {
     number | null
   >(null);
   const [couponPreviewError, setCouponPreviewError] = useState("");
-  const [couponFallbackNote, setCouponFallbackNote] = useState("");
   const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
   const [payeeName, setPayeeName] = useState("");
   const [payeePhone, setPayeePhone] = useState("");
@@ -62,9 +45,8 @@ export default function WorkshopRegisterForm() {
     FLAT_PRICE * (1 - effectiveDiscountPercent / 100)
   );
 
-  // Non-consuming lookup so we can preview a discount before the user
-  // submits. The actual discount applied and charged is only confirmed by
-  // redeem_coupon at submission - this is just a preview.
+  // A coupon just needs to exist to apply its discount - no use-count
+  // tracking, so this lookup is the only check needed.
   async function checkCoupon() {
     const code = couponInput.trim();
     setCouponPreviewError("");
@@ -72,26 +54,18 @@ export default function WorkshopRegisterForm() {
     if (!code) return;
 
     setCouponChecking(true);
-    try {
-      const { data, error: couponErr } = await supabase
-        .from("coupons")
-        .select("max_uses, uses_count, discount_percent")
-        .eq("code", code)
-        .single();
+    const { data } = await supabase
+      .from("coupons")
+      .select("discount_percent")
+      .eq("code", code)
+      .maybeSingle();
 
-      const isValidPreview =
-        !couponErr && data && data.uses_count < data.max_uses;
-
-      if (isValidPreview) {
-        setCouponDiscountPercent(data.discount_percent);
-      } else {
-        setCouponPreviewError("Coupon not found or already fully used");
-      }
-    } catch {
-      setCouponPreviewError("Coupon not found or already fully used");
-    } finally {
-      setCouponChecking(false);
+    if (data) {
+      setCouponDiscountPercent(data.discount_percent);
+    } else {
+      setCouponPreviewError("Coupon not found");
     }
+    setCouponChecking(false);
   }
 
   async function handleSubmit() {
@@ -106,35 +80,11 @@ export default function WorkshopRegisterForm() {
 
     setSubmitting(true);
     setError("");
-    setCouponFallbackNote("");
 
     try {
       const enteredCode = couponInput.trim();
-      let amountPaid = FLAT_PRICE;
-      let couponCodeUsed: string | null = null;
-
-      // Redeem the coupon exactly once, here, right before the insert - every
-      // successful redeem_coupon call permanently consumes one of its uses, so
-      // it must not run during the price preview or on keystrokes. Only
-      // attempt it if the earlier preview looked valid; the result here (not
-      // the preview) is the source of truth for what's actually charged.
-      if (enteredCode && couponDiscountPercent !== null) {
-        const { data: redeemData, error: redeemError } = await supabase.rpc(
-          "redeem_coupon",
-          { p_code: enteredCode }
-        );
-        if (redeemError) throw redeemError;
-
-        const { valid, discountPercent } = readRedemption(redeemData);
-        if (valid) {
-          amountPaid = Math.round(FLAT_PRICE * (1 - discountPercent / 100));
-          couponCodeUsed = enteredCode;
-        } else {
-          setCouponFallbackNote(
-            "Your coupon could no longer be applied (it may have just been fully used), so you were charged the full price."
-          );
-        }
-      }
+      const amountPaid = discountedPrice;
+      const couponCodeUsed = enteredCode || null;
 
       const { data: registration, error: regError } = await supabase
         .from("workshop_registrations")
@@ -219,11 +169,6 @@ export default function WorkshopRegisterForm() {
           <p className="text-text-muted">
             Studio to Stage Workshop with Chirag Samtani — {name}
           </p>
-          {couponFallbackNote && (
-            <p className="text-thermal-accent text-sm mt-4 max-w-sm mx-auto">
-              {couponFallbackNote}
-            </p>
-          )}
         </div>
       </main>
     );
