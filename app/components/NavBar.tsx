@@ -21,7 +21,6 @@ const visitLinks = [
 
 const registerLinks = [
   { label: "As Participant", href: "/events" },
-  { label: "As Audience", href: "/register/audience" },
 ];
 
 export default function NavBar() {

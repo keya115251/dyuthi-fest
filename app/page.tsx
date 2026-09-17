@@ -333,12 +333,6 @@ export default function Home() {
     >
       Register as Participant
     </TransitionLink>
-    <TransitionLink
-      href="/register/audience"
-      className="cursor-target inline-block px-12 py-5 rounded-full border border-thermal-accent text-thermal-accent font-heading text-3xl hover:bg-thermal-accent hover:text-bg-base transition-colors"
-    >
-      Register as Audience
-    </TransitionLink>
   </div>
 </Reveal>
   </div>

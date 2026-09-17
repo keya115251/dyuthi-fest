@@ -1,5 +1,5 @@
-import AudienceRegisterForm from "./AudienceRegisterForm";
+import { redirect } from "next/navigation";
 
 export default function AudienceRegisterPage() {
-  return <AudienceRegisterForm />;
+  redirect("/");
 }
