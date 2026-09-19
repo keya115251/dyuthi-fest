@@ -40,8 +40,6 @@ export default function WorkshopRegisterForm() {
 
   // null = still loading the count
   const [slotsClaimed, setSlotsClaimed] = useState<number | null>(null);
-  const [regId, setRegId] = useState<string | null>(null);
-  const [claimedSlot, setClaimedSlot] = useState<ClaimedSlot | null>(null);
 
   const [couponInput, setCouponInput] = useState("");
   const [couponChecking, setCouponChecking] = useState(false);
@@ -75,12 +73,14 @@ export default function WorkshopRegisterForm() {
     idProof !== null;
 
   // Tier the next registration lands in, estimated from the live count so we
-  // can show a price before they start. The authoritative price comes back
-  // from the RPC when the slot is actually claimed.
+  // can show a price throughout the flow. The authoritative price comes back
+  // from the RPC, which only runs at final submission so a slot isn't tied
+  // up by someone who never completes payment.
   const estimatedPrice =
     slotsClaimed !== null && slotsClaimed < TIER_1_LIMIT
       ? TIER_1_PRICE
       : TIER_2_PRICE;
+  const estimatedTier = slotsClaimed !== null && slotsClaimed < TIER_1_LIMIT ? 1 : 2;
 
   const effectiveDiscountPercent = couponDiscountPercent ?? 0;
   const discountedEstimatedPrice = Math.round(
@@ -110,11 +110,19 @@ export default function WorkshopRegisterForm() {
     setCouponChecking(false);
   }
 
-  async function handleClaimAndProceed() {
-    // Slot already reserved (e.g. user went Back from payment) - don't claim
-    // a second one.
-    if (claimedSlot) {
-      setStep("payment");
+  function handleClaimAndProceed() {
+    if (!detailsValid) return;
+    setError("");
+    setStep("payment");
+  }
+
+  async function handleSubmit() {
+    if (PAYMENT_REQUIRED && !paymentScreenshot) {
+      setError("Please upload your payment screenshot.");
+      return;
+    }
+    if (!idProof) {
+      setError("Something went wrong. Please start again.");
       return;
     }
 
@@ -134,52 +142,27 @@ export default function WorkshopRegisterForm() {
       if (!slot) {
         setSlotsClaimed(TOTAL_ONLINE_SLOTS);
         setError(
-          "Sorry, online spots have just been filled - please register on the spot for ₹799 at the venue."
+          "Sorry, online spots have just been filled. Please register on the spot for ₹799 at the venue."
         );
         return;
       }
 
-      setRegId(newRegId);
-      setClaimedSlot(slot);
-      setStep("payment");
-    } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleSubmit() {
-    if (PAYMENT_REQUIRED && !paymentScreenshot) {
-      setError("Please upload your payment screenshot.");
-      return;
-    }
-    if (!regId || !claimedSlot || !idProof) {
-      setError("Something went wrong. Please start again.");
-      return;
-    }
-
-    setSubmitting(true);
-    setError("");
-
-    try {
       const enteredCode = couponInput.trim();
       const amountPaid = Math.round(
-        claimedSlot.price * (1 - effectiveDiscountPercent / 100)
+        slot.price * (1 - effectiveDiscountPercent / 100)
       );
       const couponCodeUsed = enteredCode || null;
 
       const { data: registration, error: regError } = await supabase
         .from("workshop_registrations")
         .insert({
-          id: regId,
+          id: newRegId,
           workshop_slug: WORKSHOP_SLUG,
           name,
           phone,
           email,
           institution,
-          tier: claimedSlot.tier,
+          tier: slot.tier,
           amount_paid: amountPaid,
           coupon_code_used: couponCodeUsed,
           payment_pending: !paymentScreenshot,
@@ -405,40 +388,40 @@ export default function WorkshopRegisterForm() {
 
             <button
               onClick={handleClaimAndProceed}
-              disabled={!detailsValid || submitting}
+              disabled={!detailsValid}
               className="w-full px-8 py-3 rounded-full bg-thermal-accent text-bg-base font-semibold hover:opacity-90 transition-opacity disabled:bg-thermal-accent/60 disabled:text-bg-base/70 disabled:cursor-not-allowed"
             >
-              {submitting ? "Reserving your spot…" : "Continue to Payment"}
+              Continue to Payment
             </button>
           </>
         )}
 
-        {step === "payment" && claimedSlot && (
+        {step === "payment" && (
           <>
             {PAYMENT_REQUIRED ? (
               <>
                 <div className="rounded-2xl border border-white/10 bg-bg-surface p-8 mb-6">
                   <p className="text-text-muted text-sm uppercase tracking-wide mb-1">
-                    Total Amount
+                    Estimated Amount
                   </p>
                   <p className="text-text-primary text-3xl font-semibold">
-                    ₹
-                    {Math.round(
-                      claimedSlot.price * (1 - effectiveDiscountPercent / 100)
-                    )}
+                    ₹{discountedEstimatedPrice}
                     {couponDiscountPercent !== null && (
                       <span className="text-text-muted text-lg font-normal line-through ml-2">
-                        ₹{claimedSlot.price}
+                        ₹{estimatedPrice}
                       </span>
                     )}
                   </p>
                   <p className="text-text-muted text-sm mt-1">
-                    Tier {String(claimedSlot.tier)} price
+                    Tier {estimatedTier} price
                     {couponDiscountPercent !== null && (
                       <span className="text-thermal-accent ml-2">
                         {couponDiscountPercent}% coupon discount applied
                       </span>
                     )}
+                  </p>
+                  <p className="text-text-muted text-xs mt-2">
+                    Final price confirmed at submission.
                   </p>
                 </div>
 
