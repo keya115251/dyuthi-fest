@@ -30,8 +30,16 @@ export const SOLO_3TS_ENABLED = true;
 // Hard deadlines for competition entries. Each competition closes on its own
 // schedule. Does NOT apply to 3T's Solo or Round 2 (which is gated
 // separately by band selection status).
-export const AANGIKAM_CLOSES_AT = "2026-09-09T18:29:59.000Z"; 
-export const HIPHOP_CREW_CLOSES_AT = "2026-09-09T18:29:59.000Z"; // 1:00 PM IST, Sept 11 2026
-export const BAND_ROUND1_CLOSES_AT = "2026-09-09T18:29:59.000Z"; // 11:59:59 PM IST, Sept 9 2026 - unchanged
-export const ROUND2_CLOSES_AT = "2026-09-12T18:29:00.000Z"; // 11:59 PM IST, Sept 12 2026
-export const AUDIENCE_CLOSES_AT = "2026-09-19T18:29:00.000Z"; // 11:59 PM IST, Sept 15 2026
+//
+// The fest concluded on September 19, 2026 - all dates below are set in the
+// past so every form gated by useRegistrationOpen shows its closed screen.
+export const AANGIKAM_CLOSES_AT = "2026-09-20T00:00:00.000Z";
+export const HIPHOP_CREW_CLOSES_AT = "2026-09-20T00:00:00.000Z";
+export const BAND_ROUND1_CLOSES_AT = "2026-09-20T00:00:00.000Z";
+export const ROUND2_CLOSES_AT = "2026-09-20T00:00:00.000Z";
+export const AUDIENCE_CLOSES_AT = "2026-09-20T00:00:00.000Z";
+
+// The workshop forms (Hip-Hop Dance Workshop, Studio to Stage) are gated by
+// remaining slot count rather than a closesAt date, so they need their own
+// hard-closed switch now that the fest is over.
+export const WORKSHOPS_CLOSED = true;

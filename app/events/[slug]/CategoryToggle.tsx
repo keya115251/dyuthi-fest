@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import TransitionLink from "@/app/components/TransitionLink";
 import type { FestEvent } from "@/app/data/events";
-import StickyRegisterBar from "@/app/components/StickyRegisterBar";
 
 export default function CategoryToggle({ event }: { event: FestEvent }) {
   const categories = event.categories ?? [];
@@ -95,17 +93,12 @@ export default function CategoryToggle({ event }: { event: FestEvent }) {
           </a>
         )}
 
-        <TransitionLink
-          href={`/register/${event.slug}?category=${categories[active].type}`}
-          className="inline-block mt-6 px-8 py-3 rounded-full bg-thermal-accent text-bg-base font-semibold hover:opacity-90 transition-opacity"
-        >
-          Register — {categories[active].type}
-        </TransitionLink>
+        <p className="text-center text-text-muted mt-16">
+          Dyuthi 2026 took place on September 18th and 19th. Thank you to
+          everyone who made it a success. Hope to see y&apos;all again next
+          year.
+        </p>
       </div>
-      <StickyRegisterBar
-  eventName={event.name}
-  registerHref={`/register/${event.slug}?category=${categories[active].type}`}
-/>
     </main>
   );
 }

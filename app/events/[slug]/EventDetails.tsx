@@ -1,8 +1,6 @@
 "use client";
 
-import TransitionLink from "@/app/components/TransitionLink";
 import type { FestEvent } from "@/app/data/events";
-import StickyRegisterBar from "@/app/components/StickyRegisterBar";
 import PrismaticBurst from "@/app/components/PrismaticBurst";
 import { useFlashSale } from "@/app/lib/useFlashSale";
 import CountdownTimer from "@/app/components/CountdownTimer";
@@ -128,44 +126,12 @@ export default function EventDetails({ event }: { event: FestEvent }) {
           </a>
         )}
 
-        {event.slug === "battle-of-the-bands" ? (
-          <div className="flex gap-4 mt-6">
-            <TransitionLink
-              href="/register/battle-of-the-bands"
-              className="cursor-target flex-1 text-center px-8 py-3 rounded-full bg-thermal-accent text-bg-base font-semibold hover:opacity-90 transition-opacity"
-            >
-              Round 1
-            </TransitionLink>
-            <TransitionLink
-              href="/register/battle-of-the-bands/round-2"
-              className="cursor-target flex-1 text-center px-8 py-3 rounded-full border border-thermal-accent text-thermal-accent font-semibold hover:bg-thermal-accent hover:text-bg-base transition-colors"
-            >
-              Round 2
-            </TransitionLink>
-          </div>
-        ) : (
-          <TransitionLink
-            href={`/register/${event.slug}`}
-            className="cursor-target inline-block mt-6 px-8 py-3 rounded-full bg-thermal-accent text-bg-base font-semibold hover:opacity-90 transition-opacity"
-          >
-            Register
-          </TransitionLink>
-        )}
+        <p className="text-center text-text-muted mt-16">
+          Dyuthi 2026 took place on September 18th and 19th. Thank you to
+          everyone who made it a success. Hope to see y&apos;all again next
+          year.
+        </p>
       </div>
-      {event.slug === "battle-of-the-bands" ? (
-        <StickyRegisterBar
-          eventName={event.name}
-          registerHref="/register/battle-of-the-bands"
-          registerLabel="Round 1"
-          secondaryHref="/register/battle-of-the-bands/round-2"
-          secondaryLabel="Round 2"
-        />
-      ) : (
-        <StickyRegisterBar
-          eventName={event.name}
-          registerHref={`/register/${event.slug}`}
-        />
-      )}
     </main>
   );
 }

@@ -19,13 +19,8 @@ const visitLinks = [
   { label: "Contact", href: "/contact" },
 ];
 
-const registerLinks = [
-  { label: "As Participant", href: "/events" },
-];
-
 export default function NavBar() {
   const [visitOpen, setVisitOpen] = useState(false);
-  const [registerOpen, setRegisterOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -72,38 +67,6 @@ export default function NavBar() {
                 className="absolute top-full right-0 mt-3 w-40 rounded-xl border border-white/10 bg-bg-surface overflow-hidden"
               >
                 {visitLinks.map((link) => (
-                  <TransitionLink
-                    key={link.label}
-                    href={link.href}
-                    className="cursor-target block px-4 py-3 text-lg  text-text-muted hover:text-thermal-accent hover:[text-shadow:0_0_8px_var(--color-thermal-accent)] hover:bg-white/5 transition-colors duration-200"
-                  >
-                    {link.label}
-                  </TransitionLink>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div
-          className="relative"
-          onMouseEnter={() => setRegisterOpen(true)}
-          onMouseLeave={() => setRegisterOpen(false)}
-        >
-          <button className="cursor-target text-text-muted hover:text-thermal-accent hover:[text-shadow:0_0_8px_var(--color-thermal-accent)] transition-colors duration-200">
-            Register
-          </button>
-
-          <AnimatePresence>
-            {registerOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.15 }}
-                className="absolute top-full right-0 mt-3 w-48 rounded-xl border border-white/10 bg-bg-surface overflow-hidden"
-              >
-                {registerLinks.map((link) => (
                   <TransitionLink
                     key={link.label}
                     href={link.href}
@@ -192,19 +155,6 @@ export default function NavBar() {
                 Visit
               </p>
               {visitLinks.map((link) => (
-                <TransitionLink
-                  key={link.label}
-                  href={link.href}
-                  className="cursor-target text-text-muted hover:text-thermal-accent py-3 border-b border-white/5"
-                >
-                  {link.label}
-                </TransitionLink>
-              ))}
-
-              <p className="mt-5 mb-1 text-xs uppercase tracking-widest text-text-muted/70">
-                Register
-              </p>
-              {registerLinks.map((link) => (
                 <TransitionLink
                   key={link.label}
                   href={link.href}

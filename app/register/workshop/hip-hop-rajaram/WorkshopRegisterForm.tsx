@@ -4,7 +4,12 @@ import { useEffect, useId, useState } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import PhoneInput from "@/app/components/PhoneInput";
 import Waves from "@/app/components/Waves";
-import { PAYMENT_REQUIRED, TEAM_NOTIFICATION_EMAIL } from "@/app/lib/config";
+import TransitionLink from "@/app/components/TransitionLink";
+import {
+  PAYMENT_REQUIRED,
+  TEAM_NOTIFICATION_EMAIL,
+  WORKSHOPS_CLOSED,
+} from "@/app/lib/config";
 
 // Slug the workshop_slots / workshop_registrations tables key off of. Note this
 // differs from the route segment (hip-hop-rajaram).
@@ -228,6 +233,29 @@ export default function WorkshopRegisterForm() {
   }
 
   // ----- loading / full screens (no form) -----
+
+  if (WORKSHOPS_CLOSED && step !== "done") {
+    return (
+      <main className="min-h-screen bg-bg-base flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <h1 className="font-heading text-4xl text-text-primary mb-4">
+            Registration Closed
+          </h1>
+          <p className="text-text-muted">
+            Registration for the Hip-Hop Dance Workshop with Rajaram has
+            closed. The deadline has passed and entries are no longer being
+            accepted.
+          </p>
+          <TransitionLink
+            href="/"
+            className="cursor-target inline-block mt-6 text-thermal-accent hover:underline"
+          >
+            ← Back to Home
+          </TransitionLink>
+        </div>
+      </main>
+    );
+  }
 
   if (slotsClaimed === null) {
     return (

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import TransitionLink from "@/app/components/TransitionLink";
 import Prism from "./components/Prism";
 import Waves from "./components/Waves";
 import Reveal from "./components/Reveal";
@@ -17,29 +16,65 @@ const calendar = [
   {
     day: "Day 1 — September 18",
     slots: [
-      { time: "Morning", event: "Aangikam", host: "Chaitanya Laasya" },
-      { time: "Evening", event: "3T's (Time to Tap)", host: "United Dance Crew" },
       {
-        time: "Parallel",
-        event: "Studio to Stage",
-        host: "Hosted by Chirag Samtani",
-        detail: "September 18 · 1 – 4 PM",
-        href: "/register/workshop/studio-to-stage",
+        event: "Inaugural Ceremony",
+        start: "9:30 AM",
+        end: "11:30 AM",
+        venue: "Main Stage",
+      },
+      {
+        event: "Aangikam — Junior Category (Folk & Classical Dance Competition)",
+        start: "12:00 PM",
+        end: "1:30 PM",
+        venue: "Assembly Hall",
+      },
+      {
+        event: "Aangikam — Senior Category (Folk & Classical Dance Competition)",
+        start: "12:00 PM",
+        end: "2:30 PM",
+        venue: "Main Stage",
+      },
+      {
+        event: "Faculty Lunch",
+        start: "12:30 PM",
+        end: "1:30 PM",
+        venue: "Car Parking Lot",
+      },
+      {
+        event: "Music Workshop",
+        start: "1:00 PM",
+        end: "4:00 PM",
+        venue: "SMS Block Seminar Hall",
+      },
+      {
+        event: "3T's (Time to Tap) — Hip-Hop Dance Competition",
+        start: "2:30 PM",
+        end: "5:30 PM",
+        venue: "Main Stage",
       },
     ],
   },
   {
     day: "Day 2 — September 19",
     slots: [
-      { time: "All Day", event: "Veni, Vidi, Vici.", host: "Chaitanya Geethi x Vaadya" },
       {
-        time: "Parallel",
-        event: "Hip-Hop Dance Workshop with Rajaram",
-        host: "BFAB Dance Crew",
-        detail: "September 19 · 3 hours",
-        href: "/register/workshop/hip-hop-rajaram",
+        event: "Veni, Vidi, Vici. — Battle of the Bands",
+        start: "8:00 AM",
+        end: "2:00 PM",
+        venue: "Main Stage",
       },
-      { time: "Parallel", event: "Workshop / Celebrity Session 2", host: "Chaitanya Laasya", tba: true },
+      {
+        event: "Dance Workshop",
+        start: "12:00 PM",
+        end: "3:00 PM",
+        venue: "Aerobics Room",
+      },
+      {
+        event: "Musical Evening",
+        start: "3:00 PM",
+        end: "6:00 PM",
+        venue: "Main Stage",
+      },
     ],
   },
 ];
@@ -290,32 +325,16 @@ export default function Home() {
               {day.slots.map((slot) => (
                 <div
                   key={slot.event}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-bg-surface px-6 py-4"
+                  className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-bg-surface px-6 py-4"
                 >
                   <div>
                     <p className="text-text-primary font-medium">
                       {slot.event}
-                      {"tba" in slot && slot.tba && (
-                        <span className="ml-2 text-text-muted text-xs italic">
-                          To be announced
-                        </span>
-                      )}
                     </p>
-                    {"detail" in slot && slot.detail && (
-                      <p className="text-thermal-accent text-sm">{slot.detail}</p>
-                    )}
-                    <p className="text-text-muted text-sm">{slot.host}</p>
-                    {"href" in slot && slot.href && (
-                      <TransitionLink
-                        href={slot.href}
-                        className="cursor-target inline-block mt-2 text-sm text-thermal-accent hover:underline"
-                      >
-                        Register →
-                      </TransitionLink>
-                    )}
+                    <p className="text-text-muted text-sm">{slot.venue}</p>
                   </div>
-                  <span className="text-text-muted text-sm uppercase tracking-wide">
-                    {slot.time}
+                  <span className="text-text-muted text-sm uppercase tracking-wide text-right flex-shrink-0">
+                    {slot.start} – {slot.end}
                   </span>
                 </div>
               ))}
@@ -326,14 +345,11 @@ export default function Home() {
     </div>
 
     <Reveal delay={0.3}>
-  <div className="text-center mt-16 flex flex-col sm:flex-row gap-4 justify-center">
-    <TransitionLink
-      href="/events"
-      className="cursor-target inline-block px-12 py-5 rounded-full border border-thermal-accent text-thermal-accent font-heading text-3xl hover:bg-thermal-accent hover:text-bg-base transition-colors"
-    >
-      Register as Participant
-    </TransitionLink>
-  </div>
+  <p className="text-center text-text-muted mt-16">
+    Dyuthi 2026 took place on September 18th and 19th. Thank you to
+    everyone who made it a success. Hope to see y&apos;all again next
+    year.
+  </p>
 </Reveal>
   </div>
 </section>
